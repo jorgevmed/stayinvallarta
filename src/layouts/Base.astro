@@ -1,0 +1,28 @@
+---
+// Layout base de todas las páginas.
+// Semana 2: aquí se agregan header (5 secciones), footer, hreflang y schema.org.
+import "../styles/global.css";
+
+interface Props {
+  title: string;
+  description: string;
+  lang?: "en" | "es" | "fr";
+}
+
+const { title, description, lang = "en" } = Astro.props;
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={Astro.url.href} />
+    <!-- Semana 2: matriz hreflang (en-US / en-CA / es-MX / fr-CA) y JSON-LD desde datos -->
+  </head>
+  <body class="bg-white text-siv-ink">
+    <slot />
+  </body>
+</html>

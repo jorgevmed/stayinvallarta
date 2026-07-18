@@ -1,0 +1,38 @@
+# ============================================================
+# CI de Stay in Vallarta — "el robot de calidad" (SIV-7 §9)
+# Corre en cada push y pull request. Si algo falla, el cambio
+# NO se publica. El deploy lo hace Cloudflare Pages al hacer
+# merge a main (integración directa GitHub → Cloudflare).
+# ============================================================
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  calidad:
+    name: Tipos, build y presupuestos de velocidad
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Verificación de tipos (TypeScript + Astro)
+        run: npm run check
+
+      - name: Construir el sitio
+        run: npm run build
+
+      - name: Lighthouse CI — presupuestos bloqueantes (SIV-4)
+        run: npx --yes @lhci/cli@0.14.x autorun

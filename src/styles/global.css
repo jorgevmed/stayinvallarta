@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+/* ============================================================
+   DESIGN TOKENS — Identidad Stay in Vallarta (SIV-7 §3)
+   Única fuente de verdad de la marca. Todo el sitio consume
+   estos valores; no inventar colores ni tamaños fuera de aquí.
+   ============================================================ */
+@theme {
+  /* --- Paleta de marca --- */
+  --color-siv-blue: #009cd8;
+  --color-siv-blue-dark: #007bab; /* hover / texto sobre claro */
+  --color-siv-blue-light: #e5f6fc; /* fondos suaves */
+  --color-siv-gold: #f0b400;
+  --color-siv-gold-dark: #c79500;
+  --color-siv-green: #28a030;
+  --color-siv-green-dark: #1f7d26;
+  --color-siv-ink: #222222; /* texto principal */
+  --color-siv-gray: #5a5a5a; /* texto secundario */
+  --color-siv-mist: #f0f7fb; /* fondo alterno de secciones */
+
+  /* --- Tipografía ---
+     Pendiente (Semana 2, Miguel): 2 pesos self-hosted.
+     Mientras tanto, pila del sistema = 0 KB extra. */
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+
+  /* --- Accesibilidad 60+ (SIV-5): base grande y legible --- */
+  --text-base: 1.125rem; /* 18px mínimo en cuerpo */
+  --text-base--line-height: 1.65;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 1.875rem;
+  --text-3xl: 2.375rem;
+
+  /* --- Radios y sombras de componentes --- */
+  --radius-card: 0.75rem;
+  --shadow-card: 0 2px 10px rgb(0 0 0 / 0.08);
+}
+
+/* ============================================================
+   Reglas globales de accesibilidad (WCAG 2.2 AA, audiencia 60+)
+   ============================================================ */
+@layer base {
+  html {
+    color: var(--color-siv-ink);
+    font-size: 100%;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+  }
+
+  /* Foco visible siempre — navegación por teclado */
+  :focus-visible {
+    outline: 3px solid var(--color-siv-blue);
+    outline-offset: 2px;
+  }
+
+  /* Objetivos táctiles generosos (mínimo 44×44 px) */
+  a,
+  button {
+    min-height: 44px;
+  }
+
+  /* Respetar preferencia de menos movimiento */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
