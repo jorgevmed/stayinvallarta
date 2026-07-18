@@ -7,11 +7,11 @@
    ============================================================ */
 @theme {
   /* --- Paleta de marca --- */
-  --color-siv-blue: #009cd8;
-  --color-siv-blue-dark: #007bab; /* hover / texto sobre claro */
+  --color-siv-blue: #009cd8; /* solo fondos, botones y gráficos grandes */
+  --color-siv-blue-dark: #006b94; /* texto azul sobre fondos claros (AA ✓) */
   --color-siv-blue-light: #e5f6fc; /* fondos suaves */
-  --color-siv-gold: #f0b400;
-  --color-siv-gold-dark: #c79500;
+  --color-siv-gold: #f0b400; /* solo fondos y acentos gráficos */
+  --color-siv-gold-dark: #7d5b00; /* texto dorado sobre fondos claros (AA ✓) */
   --color-siv-green: #28a030;
   --color-siv-green-dark: #1f7d26;
   --color-siv-ink: #222222; /* texto principal */
