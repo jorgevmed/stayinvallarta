@@ -1,0 +1,127 @@
+---
+/**
+ * <PhotoGallery /> — hero + responsive thumbnail grid with a CSS-only lightbox.
+ *
+ * Zero JavaScript: the lightbox uses :target, so it works with the 50 KB JS
+ * budget untouched. The hero preloads (priority); thumbnails lazy-load.
+ *
+ * `cap` limits how many thumbnails show in the grid (the audit's "mosaic ≤ ~5");
+ * any extra are still reachable through the lightbox via the "+N more" tile.
+ */
+import Photo from "@/components/Photo.astro";
+import { altFor, heroOf, type PropertyPhoto } from "@/lib/photos";
+
+interface Props {
+  photos: PropertyPhoto[];
+  lang?: "en" | "es" | "fr";
+  cap?: number;        // 0 = show all
+  class?: string;
+}
+const { photos, lang = "en", cap = 0, class: className = "" } = Astro.props;
+
+const hero = heroOf(photos);
+const rest = photos.filter((p) => p.id !== hero?.id);
+const shown = cap > 0 ? rest.slice(0, cap) : rest;
+const extra = cap > 0 ? Math.max(0, rest.length - cap) : 0;
+const lid = (id: string) => `lb-${id}`;
+---
+
+{hero && (
+  <figure class={`siv-gallery ${className}`}>
+    <a href={`#${lid(hero.id)}`} class="siv-hero-link" aria-label="Open photo">
+      <Photo
+        src={hero.r2_key}
+        alt={altFor(hero, lang)}
+        width={hero.width}
+        height={hero.height}
+        lqip={hero.lqip}
+        priority
+        fit="cover"
+        sizes="100vw"
+        class="siv-hero"
+      />
+    </a>
+
+    {shown.length > 0 && (
+      <div class="siv-grid">
+        {shown.map((p, i) => (
+          <a href={`#${lid(p.id)}`} class="siv-tile" aria-label="Open photo">
+            <Photo
+              src={p.r2_key}
+              alt={altFor(p, lang)}
+              width={p.width}
+              height={p.height}
+              lqip={p.lqip}
+              fit="cover"
+              loadedWidth={480}
+              sizes="(max-width:640px) 45vw, 220px"
+            />
+            {i === shown.length - 1 && extra > 0 && <span class="siv-more">+{extra}</span>}
+          </a>
+        ))}
+      </div>
+    )}
+
+    {/* CSS-only lightbox overlays (one per photo) */}
+    {photos.map((p, i) => {
+      const prev = photos[(i - 1 + photos.length) % photos.length];
+      const next = photos[(i + 1) % photos.length];
+      return (
+        <div id={lid(p.id)} class="siv-lightbox" role="dialog" aria-label="Photo viewer">
+          <a href="#_" class="siv-lb-close" aria-label="Close">✕</a>
+          {photos.length > 1 && <a href={`#${lid(prev.id)}`} class="siv-lb-nav siv-lb-prev" aria-label="Previous">‹</a>}
+          {photos.length > 1 && <a href={`#${lid(next.id)}`} class="siv-lb-nav siv-lb-next" aria-label="Next">›</a>}
+          <div class="siv-lb-inner">
+            <Photo
+              src={p.r2_key}
+              alt={altFor(p, lang)}
+              width={p.width}
+              height={p.height}
+              lqip={p.lqip}
+              fit="contain"
+              loadedWidth={1600}
+              sizes="100vw"
+              class="siv-lb-img"
+            />
+          </div>
+        </div>
+      );
+    })}
+  </figure>
+)}
+
+<style>
+  .siv-gallery { margin: 0; }
+  .siv-hero-link { display: block; border-radius: var(--radius-card); overflow: hidden; box-shadow: var(--shadow-card); }
+  .siv-hero { border-radius: var(--radius-card); }
+  .siv-grid {
+    display: grid; gap: 0.5rem; margin-top: 0.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
+  .siv-tile {
+    position: relative; display: block; border-radius: 0.5rem; overflow: hidden;
+    aspect-ratio: 4 / 3;
+  }
+  .siv-tile :global(img) { height: 100%; object-fit: cover; }
+  .siv-more {
+    position: absolute; inset: 0; display: grid; place-items: center;
+    background: rgb(0 0 0 / 0.45); color: #fff; font-size: var(--text-xl); font-weight: 700;
+  }
+  /* Lightbox — hidden until :target */
+  .siv-lightbox {
+    position: fixed; inset: 0; display: none; place-items: center;
+    background: rgb(0 0 0 / 0.9); z-index: 100; padding: 3vmin;
+  }
+  .siv-lightbox:target { display: grid; }
+  .siv-lb-inner { max-width: 96vw; max-height: 92vh; }
+  .siv-lb-img { max-height: 92vh; width: auto; border-radius: 0.4rem; }
+  .siv-lb-close, .siv-lb-nav {
+    position: absolute; color: #fff; text-decoration: none; font-weight: 700;
+    display: grid; place-items: center; min-width: 48px; min-height: 48px;
+    background: rgb(255 255 255 / 0.12); border-radius: 999px;
+  }
+  .siv-lb-close { top: 2.5vmin; right: 2.5vmin; font-size: 1.25rem; }
+  .siv-lb-nav { top: 50%; transform: translateY(-50%); font-size: 2rem; }
+  .siv-lb-prev { left: 2.5vmin; }
+  .siv-lb-next { right: 2.5vmin; }
+</style>

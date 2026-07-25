@@ -7,9 +7,11 @@ interface Props {
   title: string;
   description: string;
   lang?: "en" | "es" | "fr";
+  /** Keep shared/semi-private pages (photo galleries) out of search engines. */
+  noindex?: boolean;
 }
 
-const { title, description, lang = "en" } = Astro.props;
+const { title, description, lang = "en", noindex = false } = Astro.props;
 ---
 
 <!doctype html>
@@ -20,6 +22,8 @@ const { title, description, lang = "en" } = Astro.props;
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={Astro.url.href} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    <link rel="icon" type="image/png" href="/emblem.png" />
     <!-- Semana 2: matriz hreflang (en-US / en-CA / es-MX / fr-CA) y JSON-LD desde datos -->
   </head>
   <body class="bg-white text-siv-ink">

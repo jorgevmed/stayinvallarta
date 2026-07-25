@@ -1,0 +1,38 @@
+---
+/**
+ * /gallery/[building]/[unit]/ — shareable gallery of one apartment
+ * (apartment photos + the building's amenities appended below).
+ */
+import Base from "../../../layouts/Base.astro";
+import PublicGallery from "../../../components/PublicGallery.astro";
+import { getPhotos } from "@/lib/photos";
+import { KNOWN_GALLERIES } from "@/lib/site";
+
+export async function getStaticPaths() {
+  // slug -> { name, units } from the static map…
+  const map = new Map<string, { name: string; units: Set<string> }>(
+    Object.entries(KNOWN_GALLERIES).map(([slug, g]) => [slug, { name: g.name, units: new Set(g.units) }]),
+  );
+  // …merged with whatever is live & published right now.
+  for (const p of await getPhotos()) {
+    const e = map.get(p.building_slug) ?? { name: p.building, units: new Set<string>() };
+    e.name = p.building;
+    if (p.unit) e.units.add(p.unit);
+    map.set(p.building_slug, e);
+  }
+  return [...map.entries()].flatMap(([building, e]) =>
+    [...e.units].map((unit) => ({ params: { building, unit }, props: { name: e.name } })),
+  );
+}
+
+const { building, unit } = Astro.params;
+const { name } = Astro.props;
+---
+
+<Base
+  title={`${name} · Apartment ${unit} — Photo Gallery · Stay in Vallarta`}
+  description={`Photos of apartment ${unit} at ${name} in Puerto Vallarta, plus the building's pool and common areas. Stay in Vallarta.`}
+  noindex
+>
+  <PublicGallery buildingSlug={building!} buildingName={name} unit={unit} />
+</Base>
