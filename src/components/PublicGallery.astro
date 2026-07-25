@@ -435,10 +435,16 @@ const SUPA_BASE = String(import.meta.env.PUBLIC_SUPABASE_URL ?? "");
   .pg-cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
   .pg-btn { display: inline-flex; align-items: center; justify-content: center; padding: 12px 26px;
     border-radius: 999px; font-weight: 700; text-decoration: none; }
-  .pg-btn-wa { background: #25d366; color: #fff; }
-  .pg-btn-mail { background: var(--color-siv-blue); color: #fff; }
+  /* WhatsApp green is a deliberate brand exception, but white-on-#25d366 is only 1.98:1.
+     Ink text on the same green is 8.95:1 — keeps the recognisable cue and passes AA. */
+  .pg-btn-wa { background: #25d366; color: var(--color-siv-ink); }
+  /* --color-siv-blue is a background/graphics colour: white on it is 3.11:1 and FAILS AA.
+     blue-dark is the AA-safe pairing (5.95:1). Never swap this back to --color-siv-blue. */
+  .pg-btn-mail { background: var(--color-siv-blue-dark); color: #fff; }
   .pg-foot { margin-top: 26px; font-size: .9rem; }
-  .pg-foot a { color: var(--color-siv-blue-dark); }
+  /* inline-block + padding so the link meets WCAG 2.2 target-size (24x24 min), which
+     global.css's blanket min-height:44px does not satisfy on inline text links. */
+  .pg-foot a { color: var(--color-siv-blue-dark); display: inline-block; padding: 6px 8px; }
 
   /* floating WhatsApp */
   .pg-wa-float { position: fixed; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom)); z-index: 40;
