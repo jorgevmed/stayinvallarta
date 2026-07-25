@@ -1,0 +1,60 @@
+---
+/**
+ * <Photo /> — the single responsive image primitive for the whole site.
+ *
+ * Delivers your #1 priority (fast images) by default:
+ *   • AVIF/WebP via Cloudflare (format=auto), sized per device with srcset/sizes
+ *   • explicit width/height → zero layout shift (CLS)
+ *   • LQIP blur-up placeholder painted instantly behind the image
+ *   • hero images: eager + fetchpriority="high"; everything else: lazy + async
+ *   • ships ZERO JavaScript
+ *
+ * Before PUBLIC_IMG_BASE is set (R2 not live yet), it renders the LQIP so pages
+ * still look right during development.
+ */
+import { buildImageUrl, buildSrcSet, imagesConfigured } from "@/lib/img";
+
+interface Props {
+  src: string;                 // r2_key
+  alt: string;
+  width: number;               // intrinsic px (from the catalog) → prevents CLS
+  height: number;
+  lqip?: string | null;        // data-URI blur placeholder
+  sizes?: string;              // e.g. "(max-width:768px) 100vw, 50vw"
+  widths?: number[];           // srcset ladder
+  priority?: boolean;          // hero / above-the-fold
+  quality?: number;
+  fit?: "cover" | "contain" | "scale-down" | "crop" | "pad";
+  loadedWidth?: number;        // width used for the plain `src` fallback
+  class?: string;
+}
+
+const {
+  src, alt, width, height, lqip,
+  sizes = "100vw",
+  widths = [320, 480, 640, 960, 1280, 1920, 2560],
+  priority = false, quality = 82, fit,
+  loadedWidth = priority ? 1600 : 800,
+  class: className = "",
+} = Astro.props;
+
+const configured = imagesConfigured();
+const fallback = buildImageUrl(src, { width: loadedWidth, quality, fit });
+const srcset = configured ? buildSrcSet(src, widths, { quality, fit }) : undefined;
+const imgSrc = fallback || lqip || "";
+const bg = lqip ? `background:#eef3f6 url('${lqip}') center/cover no-repeat;` : "";
+---
+
+<img
+  src={imgSrc}
+  srcset={srcset}
+  sizes={srcset ? sizes : undefined}
+  width={width}
+  height={height}
+  alt={alt}
+  loading={priority ? "eager" : "lazy"}
+  fetchpriority={priority ? "high" : "auto"}
+  decoding={priority ? "auto" : "async"}
+  class={`siv-photo ${className}`}
+  style={`display:block;width:100%;height:auto;aspect-ratio:${width}/${height};${bg}`}
+/>

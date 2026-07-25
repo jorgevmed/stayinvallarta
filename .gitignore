@@ -16,3 +16,7 @@ npm-debug.log*
 # lighthouse
 .lighthouseci/
 .DS_Store
+.npmrc
+
+# .env.example documents the required vars — keep it tracked
+!.env.example

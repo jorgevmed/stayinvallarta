@@ -1,0 +1,33 @@
+---
+/**
+ * /gallery/[building]/ — shareable gallery of a building's façade & amenities.
+ * Paths come from the known-galleries map merged with the live published
+ * catalog; the photos themselves always load live in the browser.
+ */
+import Base from "../../../layouts/Base.astro";
+import PublicGallery from "../../../components/PublicGallery.astro";
+import { getPhotos } from "@/lib/photos";
+import { KNOWN_GALLERIES } from "@/lib/site";
+
+export async function getStaticPaths() {
+  const byslug = new Map<string, string>(
+    Object.entries(KNOWN_GALLERIES).map(([slug, g]) => [slug, g.name]),
+  );
+  for (const p of await getPhotos()) byslug.set(p.building_slug, p.building);
+  return [...byslug.entries()].map(([building, name]) => ({
+    params: { building },
+    props: { name },
+  }));
+}
+
+const { building } = Astro.params;
+const { name } = Astro.props;
+---
+
+<Base
+  title={`${name} — Photo Gallery · Stay in Vallarta`}
+  description={`Photos of ${name} in Puerto Vallarta — building, pool and common areas. Stay in Vallarta apartment rentals.`}
+  noindex
+>
+  <PublicGallery buildingSlug={building!} buildingName={name} />
+</Base>

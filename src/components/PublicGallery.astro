@@ -1,0 +1,464 @@
+---
+/**
+ * PublicGallery — the shareable photo gallery page body.
+ *
+ * Photos load in the browser straight from Supabase (published rows only, via
+ * RLS), so galleries are always current — publishing/hiding a photo in the
+ * manager app is reflected on the next page load, with NO site rebuild.
+ *
+ * Used by /gallery/[building]/ (building & amenities) and
+ * /gallery/[building]/[unit]/ (apartment + amenities appended).
+ */
+import { CONTACT } from "@/lib/site";
+// Untitled UI PRO duotone section icons — pre-rendered static SVG strings
+// (src/lib/gallery-icons.ts). The client script clones them from <template>
+// tags, so the icon package never enters the site bundle or build.
+import { SECTION_ICONS } from "@/lib/gallery-icons";
+
+interface Props {
+  buildingSlug: string;
+  buildingName: string;
+  unit?: string;
+}
+const { buildingSlug, buildingName, unit } = Astro.props;
+
+// Early connection hints: photos can't start downloading until the browser has
+// TLS to Supabase (photo list) and the image CDN (files). Preconnecting in the
+// HTML saves a round of DNS+TLS on both before the script even runs.
+const IMG_BASE = String(import.meta.env.PUBLIC_IMG_BASE ?? "");
+const SUPA_BASE = String(import.meta.env.PUBLIC_SUPABASE_URL ?? "");
+---
+
+{IMG_BASE && <link rel="preconnect" href={IMG_BASE} crossorigin />}
+{SUPA_BASE && <link rel="preconnect" href={SUPA_BASE} crossorigin />}
+
+<div
+  id="gal"
+  data-building={buildingSlug}
+  data-building-name={buildingName}
+  data-unit={unit ?? ""}
+  data-wa={CONTACT.whatsappNumber}
+  data-email={CONTACT.email}
+>
+  {/* Pre-rendered section icons, cloned by the client script. NOTE: never use a
+      self-closing <template set:html> here — it hangs the Astro compiler. */}
+  <div hidden aria-hidden="true">
+    {Object.entries(SECTION_ICONS).map(([k, svg]) => <span id={"pg-ico-" + k} set:html={svg} />)}
+  </div>
+  <header class="pg-head">
+    <a class="pg-brand" href="/" aria-label="Stay in Vallarta">
+      <img class="pg-emblem" src="/emblem.png" alt="" />
+      <span class="pg-wordmark">Stay in Vallarta</span>
+    </a>
+    <div class="pg-langs" role="group" aria-label="Language">
+      <button data-lang="en" class="pg-lang">EN</button>
+      <button data-lang="es" class="pg-lang">ES</button>
+      <button data-lang="fr" class="pg-lang">FR</button>
+    </div>
+  </header>
+
+  <main class="pg-main">
+    <div class="pg-title">
+      <p class="pg-kicker" data-i18n="kicker">Photo gallery</p>
+      <h1>{buildingName}{unit ? ` · ` : ""}{unit ? <span data-i18n-unit>Apartment {unit}</span> : null}</h1>
+      <p class="pg-sub">Puerto Vallarta, México — Versalles &amp; Fluvial</p>
+    </div>
+
+    <div id="pg-content" aria-live="polite">
+      <!-- skeleton while loading -->
+      <div class="pg-skel-hero pg-skel"></div>
+      <div class="pg-skel-grid">
+        <div class="pg-skel"></div><div class="pg-skel"></div>
+        <div class="pg-skel"></div><div class="pg-skel"></div>
+      </div>
+    </div>
+
+    <footer class="pg-cta" id="pg-cta" hidden>
+      <h2 data-i18n="ctaTitle">Interested in this apartment?</h2>
+      <p data-i18n="ctaSub">Write to us — we answer quickly and rent directly, with no platform fees.</p>
+      <div class="pg-cta-btns">
+        <a id="pg-wa" class="pg-btn pg-btn-wa" target="_blank" rel="noopener" hidden>WhatsApp</a>
+        <a id="pg-mail" class="pg-btn pg-btn-mail" hidden data-i18n="ctaEmail">Email us</a>
+      </div>
+      <p class="pg-foot"><a href="/">stayinvallarta.com</a></p>
+    </footer>
+  </main>
+
+  <!-- floating WhatsApp button — always reachable, no scrolling to the footer -->
+  <a id="pg-wa-float" class="pg-wa-float" target="_blank" rel="noopener" hidden aria-label="Chat on WhatsApp">
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" aria-hidden="true">
+      <path d="M12.04 2a9.9 9.9 0 0 0-8.51 14.96L2 22l5.18-1.5A9.9 9.9 0 1 0 12.04 2Zm0 1.67a8.23 8.23 0 1 1-4.2 15.3l-.3-.18-3.07.89.9-3-.2-.31a8.23 8.23 0 0 1 6.87-12.7Zm-3.24 3.6c-.19 0-.5.07-.76.36-.26.28-1 .97-1 2.38 0 1.4 1.02 2.76 1.17 2.95.14.19 1.97 3.16 4.86 4.3 2.4.95 2.89.76 3.41.71.52-.05 1.68-.68 1.92-1.35.24-.66.24-1.23.17-1.35-.07-.12-.26-.19-.55-.33-.28-.14-1.68-.83-1.94-.92-.26-.1-.45-.14-.64.14-.19.28-.73.92-.9 1.11-.16.19-.33.21-.61.07a7.7 7.7 0 0 1-2.27-1.4 8.55 8.55 0 0 1-1.57-1.96c-.17-.28-.02-.44.12-.58.13-.13.29-.33.43-.5.14-.16.19-.28.28-.47.1-.19.05-.36-.02-.5-.07-.14-.63-1.54-.87-2.1-.23-.55-.46-.48-.64-.49l-.59-.03Z"/>
+    </svg>
+  </a>
+
+  <!-- lightbox -->
+  <div id="pg-lb" class="pg-lb" hidden role="dialog" aria-modal="true" aria-label="Photo viewer">
+    <button class="pg-lb-x" data-lb="close" aria-label="Close">&#10005;</button>
+    <button class="pg-lb-nav pg-lb-prev" data-lb="prev" aria-label="Previous photo">&#8249;</button>
+    <img id="pg-lb-img" alt="" />
+    <button class="pg-lb-nav pg-lb-next" data-lb="next" aria-label="Next photo">&#8250;</button>
+    <div class="pg-lb-count" id="pg-lb-count"></div>
+  </div>
+</div>
+
+<script>
+  import { getPhotos, altFor, heroOf, type PropertyPhoto } from "@/lib/photos";
+  import { buildImageUrl, buildSrcSet } from "@/lib/img";
+  // Section icons come pre-rendered in a hidden div (see markup above).
+  const iconSpan = (key: string) => {
+    const t = document.getElementById("pg-ico-" + key);
+    return t ? `<span class="pg-ico" aria-hidden="true">${t.innerHTML}</span>` : "";
+  };
+
+  type Lang = "en" | "es" | "fr";
+
+  const STR: Record<Lang, Record<string, string>> = {
+    en: {
+      kicker: "Photo gallery", unit: "Apartment", amenities: "Building & amenities",
+      building: "The building", pool: "Pool", common: "Common areas", drone: "From the air",
+      photos: "photos", empty: "This gallery is being prepared — check back soon.",
+      ctaTitle: "Interested in this apartment?",
+      ctaSub: "Write to us — we answer quickly and rent directly, with no platform fees.",
+      ctaEmail: "Email us", waText: "Hello! I saw the photo gallery of",
+    },
+    es: {
+      kicker: "Galería de fotos", unit: "Departamento", amenities: "Edificio y amenidades",
+      building: "El edificio", pool: "Alberca", common: "Áreas comunes", drone: "Desde el aire",
+      photos: "fotos", empty: "Esta galería está en preparación — vuelve pronto.",
+      ctaTitle: "¿Te interesa este departamento?",
+      ctaSub: "Escríbenos — respondemos rápido y rentamos directo, sin comisiones de plataformas.",
+      ctaEmail: "Envíanos un correo", waText: "¡Hola! Vi la galería de fotos de",
+    },
+    fr: {
+      kicker: "Galerie photos", unit: "Appartement", amenities: "Immeuble et espaces communs",
+      building: "L'immeuble", pool: "Piscine", common: "Espaces communs", drone: "Vue aérienne",
+      photos: "photos", empty: "Cette galerie est en préparation — revenez bientôt.",
+      ctaTitle: "Cet appartement vous intéresse ?",
+      ctaSub: "Écrivez-nous — nous répondons vite et louons en direct, sans frais de plateforme.",
+      ctaEmail: "Écrivez-nous", waText: "Bonjour ! J'ai vu la galerie photos de",
+    },
+  };
+
+  const root = document.getElementById("gal")!;
+  const slug = root.dataset.building!;
+  const buildingName = root.dataset.buildingName!;
+  const unit = root.dataset.unit || null;
+  const wa = root.dataset.wa || "";
+  const email = root.dataset.email || "";
+
+  let lang: Lang = (() => {
+    const q = new URLSearchParams(location.search).get("lang");
+    if (q === "en" || q === "es" || q === "fr") return q;
+    const saved = localStorage.getItem("siv-lang");
+    if (saved === "en" || saved === "es" || saved === "fr") return saved;
+    const nav = (navigator.language || "en").slice(0, 2);
+    return nav === "es" || nav === "fr" ? (nav as Lang) : "en";
+  })();
+
+  let flat: PropertyPhoto[] = []; // lightbox order
+  let lbIdx = 0;
+
+  // ---------------------------------------------------------------- render
+  function el(tag: string, cls?: string, html?: string): HTMLElement {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (html != null) n.innerHTML = html;
+    return n;
+  }
+
+  // First few images load eagerly (they're above the fold); the rest are lazy.
+  let eagerBudget = 0;
+
+  function figureFor(p: PropertyPhoto, i: number, priority = false): HTMLElement {
+    const fig = el("figure", "pg-item");
+    const img = document.createElement("img");
+    const quality = priority ? 82 : 78;
+    const url = buildImageUrl(p.r2_key, { width: priority ? 1600 : 960, quality });
+    img.src = url || p.lqip || "";
+    // Small width ladders on purpose: fewer distinct sizes → Cloudflare's
+    // transform cache stays warm → photos come from cache, not a cold resize.
+    const ss = buildSrcSet(p.r2_key, priority ? [960, 1600, 2400] : [480, 960], { quality });
+    if (ss) {
+      img.srcset = ss;
+      img.sizes = priority ? "100vw" : "(max-width: 700px) 100vw, 50vw";
+    }
+    img.alt = altFor(p, lang);
+    img.width = p.width; img.height = p.height;
+    const eager = priority || eagerBudget-- > 0;
+    img.loading = eager ? "eager" : "lazy";
+    img.decoding = "async";
+    if (priority) img.setAttribute("fetchpriority", "high");
+    img.style.aspectRatio = `${p.width}/${p.height}`;
+    if (p.lqip) img.style.background = `#eef3f6 url('${p.lqip}') center/cover no-repeat`;
+    fig.appendChild(img);
+    fig.tabIndex = 0;
+    fig.setAttribute("role", "button");
+    fig.setAttribute("aria-label", img.alt);
+    const open = () => openLb(i);
+    fig.addEventListener("click", open);
+    fig.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
+    return fig;
+  }
+
+  function section(title: string, list: PropertyPhoto[], startIdx: number, withHero: boolean, iconKey = ""): HTMLElement {
+    const s = el("section", "pg-section");
+    if (title) s.appendChild(el("h2", "pg-h2", `${iconSpan(iconKey)}${title} <span class="pg-count">· ${list.length} ${STR[lang].photos}</span>`));
+    let rest = list, idx = startIdx;
+    if (withHero && list.length) {
+      const hero = heroOf(list)!;
+      const heroIdx = startIdx + list.indexOf(hero);
+      const wrap = el("div", "pg-hero");
+      wrap.appendChild(figureFor(hero, heroIdx, true));
+      s.appendChild(wrap);
+      rest = list.filter((x) => x !== hero);
+    }
+    const grid = el("div", "pg-grid");
+    for (const p of rest) {
+      const i = flat.indexOf(p);
+      grid.appendChild(figureFor(p, i >= 0 ? i : idx));
+      idx++;
+    }
+    if (rest.length) s.appendChild(grid);
+    return s;
+  }
+
+  const ROLE_ORDER: PropertyPhoto["role"][] = ["building", "pool", "common", "drone"];
+
+  function render(photos: PropertyPhoto[]) {
+    const box = document.getElementById("pg-content")!;
+    box.innerHTML = "";
+    eagerBudget = 3;
+    const T = STR[lang];
+
+    const unitPhotos = unit ? photos.filter((p) => p.unit === unit) : [];
+    const buildingPhotos = photos.filter((p) => !p.unit);
+
+    // lightbox order = exactly the visual order
+    flat = unit
+      ? (() => {
+          const h = heroOf(unitPhotos);
+          const restUnit = unitPhotos.filter((x) => x !== h);
+          return [...(h ? [h] : []), ...restUnit, ...ROLE_ORDER.flatMap((r) => buildingPhotos.filter((p) => p.role === r))];
+        })()
+      : (() => {
+          const ordered = ROLE_ORDER.flatMap((r) => buildingPhotos.filter((p) => p.role === r));
+          const h = heroOf(ordered);
+          return h ? [h, ...ordered.filter((x) => x !== h)] : ordered;
+        })();
+
+    if (!flat.length) {
+      box.appendChild(el("p", "pg-empty", T.empty));
+      return;
+    }
+
+    if (unit) {
+      box.appendChild(section("", unitPhotos, 0, true));
+      const amen = ROLE_ORDER.flatMap((r) => buildingPhotos.filter((p) => p.role === r));
+      if (amen.length) {
+        const s = el("section", "pg-section pg-amenities");
+        s.appendChild(el("h2", "pg-h2", `${iconSpan("amenities")}${T.amenities} <span class="pg-count">· ${amen.length} ${T.photos}</span>`));
+        const grid = el("div", "pg-grid");
+        for (const p of amen) grid.appendChild(figureFor(p, flat.indexOf(p)));
+        s.appendChild(grid);
+        box.appendChild(s);
+      }
+    } else {
+      let first = true;
+      for (const role of ROLE_ORDER) {
+        const list = buildingPhotos.filter((p) => p.role === role);
+        if (!list.length) continue;
+        box.appendChild(section(T[role] ?? role, list, 0, first, role));
+        first = false;
+      }
+    }
+    document.getElementById("pg-cta")!.hidden = false;
+  }
+
+  // ---------------------------------------------------------------- i18n chrome
+  function applyLang() {
+    localStorage.setItem("siv-lang", lang);
+    document.documentElement.lang = lang;
+    const T = STR[lang];
+    root.querySelectorAll<HTMLElement>("[data-i18n]").forEach((n) => {
+      const k = n.dataset.i18n!;
+      if (T[k]) n.textContent = T[k];
+    });
+    const u = root.querySelector<HTMLElement>("[data-i18n-unit]");
+    if (u && unit) u.textContent = `${T.unit} ${unit}`;
+    root.querySelectorAll<HTMLButtonElement>(".pg-lang").forEach((b) => {
+      b.classList.toggle("active", b.dataset.lang === lang);
+      b.setAttribute("aria-pressed", String(b.dataset.lang === lang));
+    });
+    // CTA links
+    const target = `${buildingName}${unit ? ` — ${T.unit} ${unit}` : ""}`;
+    const waBtn = document.getElementById("pg-wa") as HTMLAnchorElement;
+    const waFloat = document.getElementById("pg-wa-float") as HTMLAnchorElement;
+    if (wa) {
+      const href = `https://wa.me/${wa}?text=${encodeURIComponent(`${T.waText} ${target} (${location.href})`)}`;
+      waBtn.hidden = false;
+      waBtn.href = href;
+      waFloat.hidden = false;
+      waFloat.href = href;
+    }
+    const mailBtn = document.getElementById("pg-mail") as HTMLAnchorElement;
+    if (email) {
+      mailBtn.hidden = false;
+      mailBtn.href = `mailto:${email}?subject=${encodeURIComponent(target)}`;
+      mailBtn.textContent = T.ctaEmail;
+    }
+  }
+
+  root.querySelectorAll<HTMLButtonElement>(".pg-lang").forEach((b) =>
+    b.addEventListener("click", () => { lang = b.dataset.lang as Lang; applyLang(); render(cache); }),
+  );
+
+  // ---------------------------------------------------------------- lightbox
+  const lb = document.getElementById("pg-lb")!;
+  const lbImg = document.getElementById("pg-lb-img") as HTMLImageElement;
+  const lbCount = document.getElementById("pg-lb-count")!;
+  let lastFocus: HTMLElement | null = null;
+
+  function showLb() {
+    const p = flat[lbIdx];
+    lbImg.src = buildImageUrl(p.r2_key, { width: 1920 }) || p.lqip || "";
+    lbImg.alt = altFor(p, lang);
+    lbCount.textContent = `${lbIdx + 1} / ${flat.length}`;
+  }
+  function openLb(i: number) {
+    lbIdx = i; lastFocus = document.activeElement as HTMLElement;
+    lb.hidden = false; document.body.style.overflow = "hidden";
+    showLb();
+    (lb.querySelector<HTMLElement>("[data-lb=close]"))!.focus();
+  }
+  function closeLb() {
+    lb.hidden = true; document.body.style.overflow = "";
+    lastFocus?.focus();
+  }
+  function step(d: number) { lbIdx = (lbIdx + d + flat.length) % flat.length; showLb(); }
+
+  lb.addEventListener("click", (e) => {
+    const a = (e.target as HTMLElement).closest<HTMLElement>("[data-lb]");
+    if (a) { const k = a.dataset.lb; if (k === "close") closeLb(); else step(k === "next" ? 1 : -1); return; }
+    if (e.target === lb) closeLb();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (lb.hidden) return;
+    if (e.key === "Escape") closeLb();
+    else if (e.key === "ArrowRight") step(1);
+    else if (e.key === "ArrowLeft") step(-1);
+  });
+  let tx = 0;
+  lb.addEventListener("touchstart", (e) => { tx = e.touches[0].clientX; }, { passive: true });
+  lb.addEventListener("touchend", (e) => {
+    const dx = e.changedTouches[0].clientX - tx;
+    if (Math.abs(dx) > 45) step(dx < 0 ? 1 : -1);
+  }, { passive: true });
+
+  // ---------------------------------------------------------------- go
+  let cache: PropertyPhoto[] = [];
+  applyLang();
+  getPhotos({ buildingSlug: slug }).then((photos) => {
+    cache = photos;
+    render(photos);
+  });
+</script>
+
+<style is:global>
+  /* ---------- shareable gallery (JS-rendered nodes → global styles) ---------- */
+  .pg-head { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between;
+    gap: 14px; padding: 12px clamp(16px, 4vw, 40px); background: rgba(255,255,255,.92); backdrop-filter: blur(8px);
+    border-bottom: 1px solid #e7ecf1; }
+  /* Brand lockup matching the app: emblem on top, wordmark centered beneath */
+  .pg-brand { display: flex; flex-direction: column; align-items: center; gap: 3px;
+    min-width: 0; flex-shrink: 0; text-decoration: none; min-height: 0; }
+  .pg-emblem { display: block; width: auto; height: 34px; }
+  .pg-wordmark { font-weight: 800; color: var(--color-siv-ink); font-size: .8rem;
+    letter-spacing: -.01em; line-height: 1; white-space: nowrap; }
+  /* Larger screens get a more confident lockup */
+  @media (min-width: 768px) {
+    .pg-head { padding-top: 14px; padding-bottom: 14px; }
+    .pg-emblem { height: 52px; }
+    .pg-wordmark { font-size: 1.05rem; }
+  }
+  .pg-langs { display: flex; gap: 4px; flex-shrink: 0; }
+  .pg-lang { min-height: 36px; padding: 4px 12px; border: 1px solid #e7ecf1; background: #fff; border-radius: 999px;
+    font-size: .85rem; font-weight: 600; color: var(--color-siv-gray); cursor: pointer; }
+  .pg-lang.active { background: var(--color-siv-ink); color: #fff; border-color: var(--color-siv-ink); }
+  @media (max-width: 480px) {
+    .pg-emblem { height: 28px; }
+    .pg-wordmark { font-size: .72rem; }
+    .pg-lang { min-height: 32px; padding: 3px 9px; font-size: .78rem; }
+  }
+
+  .pg-main { max-width: 1080px; margin: 0 auto; padding: 24px clamp(16px, 4vw, 40px) 60px; }
+  .pg-kicker { text-transform: uppercase; letter-spacing: .1em; font-size: .8rem; font-weight: 700;
+    color: var(--color-siv-gold-dark); margin: 18px 0 4px; }
+  .pg-title h1 { font-size: clamp(1.7rem, 4.5vw, 2.4rem); font-weight: 800; letter-spacing: -.02em;
+    color: var(--color-siv-ink); margin: 0 0 2px; line-height: 1.15; }
+  .pg-sub { color: var(--color-siv-gray); margin: 0 0 22px; font-size: 1rem; }
+
+  .pg-section { margin-bottom: 34px; }
+  .pg-h2 { font-size: 1.25rem; font-weight: 700; margin: 26px 0 12px; color: var(--color-siv-ink);
+    display: flex; align-items: center; gap: 9px; }
+  /* Untitled UI duotone section icons: stroke + 12%-opacity fill, both in brand blue
+     (the components already use currentColor — never force path fills here) */
+  .pg-ico { display: inline-flex; color: var(--color-siv-blue-dark); flex-shrink: 0; }
+  .pg-ico svg { width: 24px; height: 24px; }
+  .pg-count { color: var(--color-siv-gray); font-weight: 500; font-size: .9rem; }
+  .pg-hero { margin-bottom: 10px; }
+  .pg-hero .pg-item img { border-radius: 16px; }
+
+  .pg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .pg-grid .pg-item:nth-child(5n + 1) { grid-column: span 2; }
+  @media (max-width: 700px) { .pg-grid { grid-template-columns: 1fr; } .pg-grid .pg-item:nth-child(5n+1) { grid-column: auto; } }
+
+  .pg-item { margin: 0; cursor: zoom-in; border-radius: 12px; overflow: hidden; }
+  .pg-item img { display: block; width: 100%; height: auto; transition: transform .35s ease; }
+  @media (hover: hover) { .pg-item:hover img { transform: scale(1.025); } }
+  .pg-item:focus-visible { outline: 3px solid var(--color-siv-blue); outline-offset: 2px; }
+
+  .pg-empty { text-align: center; color: var(--color-siv-gray); padding: 60px 20px; }
+
+  /* skeleton */
+  .pg-skel { position: relative; overflow: hidden; background: #edf1f6; border-radius: 12px; }
+  .pg-skel::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.7), transparent); animation: pg-shimmer 1.3s infinite; }
+  @keyframes pg-shimmer { to { transform: translateX(100%); } }
+  .pg-skel-hero { aspect-ratio: 16/9; margin-bottom: 10px; }
+  .pg-skel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .pg-skel-grid .pg-skel { aspect-ratio: 4/3; }
+
+  /* CTA */
+  .pg-cta { text-align: center; border-top: 1px solid #e7ecf1; margin-top: 30px; padding-top: 34px; }
+  .pg-cta h2 { font-size: 1.4rem; font-weight: 800; margin: 0 0 6px; }
+  .pg-cta p { color: var(--color-siv-gray); margin: 0 0 18px; }
+  .pg-cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .pg-btn { display: inline-flex; align-items: center; justify-content: center; padding: 12px 26px;
+    border-radius: 999px; font-weight: 700; text-decoration: none; }
+  .pg-btn-wa { background: #25d366; color: #fff; }
+  .pg-btn-mail { background: var(--color-siv-blue); color: #fff; }
+  .pg-foot { margin-top: 26px; font-size: .9rem; }
+  .pg-foot a { color: var(--color-siv-blue-dark); }
+
+  /* floating WhatsApp */
+  .pg-wa-float { position: fixed; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom)); z-index: 40;
+    width: 58px; height: 58px; border-radius: 50%; background: #25d366; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 16px rgba(0,0,0,.22); transition: transform .15s ease, box-shadow .15s ease; }
+  .pg-wa-float:hover { transform: scale(1.06); box-shadow: 0 6px 22px rgba(0,0,0,.28); }
+  .pg-wa-float[hidden] { display: none; }
+
+  /* lightbox */
+  .pg-lb { position: fixed; inset: 0; z-index: 50; background: rgba(12, 20, 28, .96); display: flex;
+    align-items: center; justify-content: center; }
+  .pg-lb img { max-width: 92vw; max-height: 86vh; object-fit: contain; border-radius: 6px; }
+  .pg-lb-x, .pg-lb-nav { position: absolute; background: rgba(255,255,255,.12); color: #fff; border: none;
+    border-radius: 50%; width: 46px; height: 46px; font-size: 22px; cursor: pointer; display: flex;
+    align-items: center; justify-content: center; }
+  .pg-lb-x:hover, .pg-lb-nav:hover { background: rgba(255,255,255,.25); }
+  .pg-lb-x { top: 16px; right: 16px; }
+  .pg-lb-prev { left: 14px; top: 50%; transform: translateY(-50%); }
+  .pg-lb-next { right: 14px; top: 50%; transform: translateY(-50%); }
+  .pg-lb-count { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+    color: rgba(255,255,255,.85); font-size: .9rem; letter-spacing: .04em; }
+</style>

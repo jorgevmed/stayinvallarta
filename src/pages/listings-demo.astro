@@ -1,0 +1,62 @@
+---
+/**
+ * Demo page proving the photo pipeline end to end on the website.
+ * Visit /listings-demo once PUBLIC_SUPABASE_* and PUBLIC_IMG_BASE are set.
+ * Groups published photos by building and shows a hero + capped mosaic each.
+ * (This is a preview scaffold — real listing pages come in Week 2 of the site.)
+ */
+import Base from "@/layouts/Base.astro";
+import PhotoGallery from "@/components/PhotoGallery.astro";
+import { getPhotos, type PropertyPhoto } from "@/lib/photos";
+
+const photos = await getPhotos({});
+const byBuilding = new Map<string, PropertyPhoto[]>();
+for (const p of photos) {
+  const arr = byBuilding.get(p.building_slug) ?? [];
+  arr.push(p);
+  byBuilding.set(p.building_slug, arr);
+}
+const groups = [...byBuilding.entries()].map(([slug, list]) => ({
+  slug,
+  name: list[0]?.building ?? slug,
+  units: [...new Set(list.filter((x) => x.unit).map((x) => x.unit))].length,
+  count: list.length,
+  photos: list,
+}));
+---
+
+<Base
+  title="Listings preview — Stay in Vallarta"
+  description="Internal preview of apartment photo galleries."
+  lang="en"
+>
+  <main class="mx-auto max-w-5xl px-6 py-10">
+    <p class="text-sm font-semibold tracking-widest text-siv-gold-dark uppercase">Pipeline preview</p>
+    <h1 class="mb-2 text-3xl font-bold text-siv-blue-dark">Apartment galleries</h1>
+
+    {groups.length === 0 ? (
+      <div class="mt-6 rounded-xl bg-siv-mist p-6 text-siv-gray">
+        <p class="font-semibold text-siv-ink">No photos loaded yet.</p>
+        <p class="mt-2">
+          Set <code>PUBLIC_SUPABASE_URL</code>, <code>PUBLIC_SUPABASE_ANON_KEY</code> and
+          <code>PUBLIC_IMG_BASE</code> in <code>.env</code>, run the two SQL files, and upload the
+          masters to R2. Then rebuild — galleries appear here automatically.
+        </p>
+      </div>
+    ) : (
+      <p class="mb-8 text-siv-gray">
+        {groups.length} buildings · {photos.length} published photos.
+      </p>
+    )}
+
+    {groups.map((g) => (
+      <section class="mb-12">
+        <div class="mb-3 flex items-baseline justify-between">
+          <h2 class="text-2xl font-bold text-siv-ink">{g.name}</h2>
+          <span class="text-siv-gray">{g.units} units · {g.count} photos</span>
+        </div>
+        <PhotoGallery photos={g.photos} lang="en" cap={5} />
+      </section>
+    ))}
+  </main>
+</Base>
