@@ -1,7 +1,7 @@
 {
   "name": "stayinvallarta",
   "version": "0.1.0",
-  "description": "Sitio web oficial de Stay in Vallarta — Astro 5 + Tailwind CSS 4 + TypeScript (estático, cero JS por defecto)",
+  "description": "Sitio web oficial de Stay in Vallarta — Astro 7 + Tailwind CSS 4 + TypeScript (estático, cero JS por defecto)",
   "type": "module",
   "private": true,
   "scripts": {
@@ -14,17 +14,23 @@
     "@astrojs/sitemap": "^3.7.3",
     "@fontsource-variable/fraunces": "^5.3.0",
     "@fontsource-variable/plus-jakarta-sans": "^5.3.0",
-    "astro": "^5.7.0"
+    "astro": "^7.1.6"
   },
   "devDependencies": {
-    "@astrojs/check": "^0.9.4",
-    "@tailwindcss/vite": "^4.1.0",
-    "tailwindcss": "^4.1.0",
-    "typescript": "^5.6.0"
+    "@astrojs/check": "^0.9.10",
+    "@tailwindcss/vite": "^4.3.3",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "comment_overrides": "sharp <0.35 arrastra CVEs de libvips. Astro lo declara como dependencia OPCIONAL con rango ^0.34 || ^0.35, así que 0.35.x es válido; npm se quedaba en 0.34.5 por el lockfile. Aquí nunca se ejecuta (no usamos astro:assets ni <Image>), pero dejarlo limpio evita que una alerta real se pierda entre el ruido.",
+  "overrides": {
+    "sharp": "^0.35.3"
   },
   "allowScripts": {
-    "esbuild@0.27.7": true,
-    "esbuild@0.25.12": true,
-    "sharp@0.34.5": true
+    "esbuild@0.28.1": true,
+    "sharp@0.35.3": true
   }
 }

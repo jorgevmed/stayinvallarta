@@ -39,7 +39,9 @@ const groups = [...byBuilding.entries()].map(([slug, list]) => ({
       <div class="mt-6 rounded-xl bg-siv-mist p-6 text-siv-gray">
         <p class="font-semibold text-siv-ink">No photos loaded yet.</p>
         <p class="mt-2">
-          Set <code>PUBLIC_SUPABASE_URL</code>, <code>PUBLIC_SUPABASE_ANON_KEY</code> and
+          {/* Astro 7 recorta el espacio en blanco al estilo JSX: un salto de línea
+              entre texto y un elemento desaparece. `{" "}` conserva el espacio. */}
+          Set <code>PUBLIC_SUPABASE_URL</code>, <code>PUBLIC_SUPABASE_ANON_KEY</code> and{" "}
           <code>PUBLIC_IMG_BASE</code> in <code>.env</code>, run the two SQL files, and upload the
           masters to R2. Then rebuild — galleries appear here automatically.
         </p>
