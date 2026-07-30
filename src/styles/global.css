@@ -1,6 +1,62 @@
 @import "tailwindcss";
 
 /* ============================================================
+   TIPOGRAFÍA AUTOALOJADA (sin CDN de Google — requisito de marca)
+   Los .woff2 se copian de @fontsource-variable a public/fonts/.
+   Para actualizarlos:
+     npm i -D @fontsource-variable/fraunces @fontsource-variable/plus-jakarta-sans
+     cp node_modules/@fontsource-variable/<pkg>/files/<pkg>-latin-wght-normal.woff2 \
+        public/fonts/<destino>.woff2
+   Subconjunto latin únicamente: 27 KB + 36 KB. Base.astro los precarga.
+   ============================================================ */
+@font-face {
+  font-family: "Plus Jakarta Sans Variable";
+  src: url("/fonts/plus-jakarta-sans-var.woff2") format("woff2-variations");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Fraunces Variable";
+  src: url("/fonts/fraunces-var.woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* Respaldos con métricas igualadas.
+   `font-display: swap` cambia la fuente después de pintar, y si el respaldo
+   ocupa un espacio distinto el texto SALTA — eso es CLS, y el presupuesto de
+   CI es 0.05. Estos overrides hacen que el respaldo del sistema ocupe
+   exactamente el mismo alto y ancho que la webfont, así el intercambio es
+   invisible. Valores calculados de las métricas reales de cada .woff2
+   (unitsPerEm, sTypoAscender/Descender y ancho medio de minúsculas) contra
+   Arial y Times New Roman. Si algún día se cambia de fuente, hay que
+   recalcularlos — no copiarlos. */
+@font-face {
+  font-family: "Plus Jakarta Fallback";
+  src: local("Arial"), local("Helvetica"), local("Liberation Sans");
+  size-adjust: 102.27%;
+  ascent-override: 101.5%;
+  descent-override: 21.71%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Fraunces Fallback";
+  src: local("Times New Roman"), local("Liberation Serif"), local("Georgia");
+  size-adjust: 121.28%;
+  ascent-override: 80.64%;
+  descent-override: 21.03%;
+  line-gap-override: 0%;
+}
+
+/* ============================================================
    DESIGN TOKENS — Identidad Stay in Vallarta (SIV-7 §3)
    Única fuente de verdad de la marca. Todo el sitio consume
    estos valores; no inventar colores ni tamaños fuera de aquí.
@@ -18,11 +74,13 @@
   --color-siv-gray: #5a5a5a; /* texto secundario */
   --color-siv-mist: #f0f7fb; /* fondo alterno de secciones */
 
-  /* --- Tipografía ---
-     Pendiente (Semana 2, Miguel): 2 pesos self-hosted.
-     Mientras tanto, pila del sistema = 0 KB extra. */
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
+  /* --- Tipografía (BRAND-KIT: autoalojada, nunca CDN de Google) ---
+     UI/cuerpo: Plus Jakarta Sans. Display: Fraunces, SOLO a ≥22px. */
+  --font-sans: "Plus Jakarta Sans Variable", "Plus Jakarta Fallback",
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial,
+    sans-serif;
+  --font-display: "Fraunces Variable", "Fraunces Fallback", ui-serif, Georgia,
+    "Times New Roman", serif;
 
   /* --- Accesibilidad 60+ (SIV-5): base grande y legible --- */
   --text-base: 1.125rem; /* 18px mínimo en cuerpo */
@@ -51,6 +109,16 @@
     font-family: var(--font-sans);
     font-size: var(--text-base);
     line-height: var(--text-base--line-height);
+  }
+
+  /* Display solo en títulos (todos ≥22px en la escala tipográfica).
+     BRAND-KIT: tracking −0.01em, nunca Fraunces por debajo de 22px. */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    letter-spacing: -0.01em;
   }
 
   /* Foco visible siempre — navegación por teclado */

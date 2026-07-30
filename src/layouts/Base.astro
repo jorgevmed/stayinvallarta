@@ -1,17 +1,62 @@
 ---
-// Layout base de todas las páginas.
-// Semana 2: aquí se agregan header (5 secciones), footer, hreflang y schema.org.
+/**
+ * Layout base de todas las páginas.
+ *
+ * Emite el paquete SEO completo: canonical, matriz hreflang recíproca,
+ * Open Graph + Twitter, JSON-LD (LodgingBusiness + WebSite) y el juego de
+ * favicons. Las páginas noindex (galerías, vista previa interna) NO reciben
+ * hreflang ni JSON-LD a propósito: declarar alternates en una página excluida
+ * del índice manda señales contradictorias a Google.
+ */
 import "../styles/global.css";
+import { HREFLANG, OG_LOCALE, alternatesFor, type Lang, type RouteKey } from "@/lib/i18n";
+import { graph, organizationSchema, websiteSchema } from "@/lib/schema";
 
 interface Props {
   title: string;
   description: string;
-  lang?: "en" | "es" | "fr";
+  lang?: Lang;
   /** Keep shared/semi-private pages (photo galleries) out of search engines. */
   noindex?: boolean;
+  /** Registry key from lib/i18n.ts. Required for hreflang — omit on noindex pages. */
+  route?: RouteKey;
+  /** Path (absolute from root) to a 1200×630 image. */
+  image?: string;
+  imageAlt?: string;
+  /** Extra JSON-LD nodes appended to the site graph (e.g. a VacationRental). */
+  schema?: object[];
 }
 
-const { title, description, lang = "en", noindex = false } = Astro.props;
+const {
+  title,
+  description,
+  lang = "en",
+  noindex = false,
+  route,
+  image = "/og/default.png",
+  imageAlt = "Stay in Vallarta — apartment rentals in Versalles & Fluvial, Puerto Vallarta",
+  schema = [],
+} = Astro.props;
+
+const site = Astro.site ?? new URL("https://stayinvallarta.com");
+const canonical = new URL(Astro.url.pathname, site).href;
+const ogImage = new URL(image, site).href;
+
+// Matriz hreflang recíproca: cada versión lista a todas, incluida a sí misma,
+// más x-default apuntando al inglés.
+const alts = route && !noindex ? alternatesFor(route) : null;
+const hreflangs = alts
+  ? (Object.entries(alts) as [Lang, string][]).flatMap(([l, path]) =>
+      HREFLANG[l].map((code) => ({ code, href: new URL(path, site).href })),
+    )
+  : [];
+const xDefault = alts ? new URL(alts.en, site).href : null;
+
+const otherOgLocales = alts
+  ? (Object.keys(alts) as Lang[]).filter((l) => l !== lang).map((l) => OG_LOCALE[l])
+  : [];
+
+const jsonLd = noindex ? null : graph(organizationSchema(), websiteSchema(), ...schema);
 ---
 
 <!doctype html>
@@ -21,10 +66,62 @@ const { title, description, lang = "en", noindex = false } = Astro.props;
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <link rel="canonical" href={Astro.url.href} />
+    <link rel="canonical" href={canonical} />
     {noindex && <meta name="robots" content="noindex, nofollow" />}
-    <link rel="icon" type="image/png" href="/emblem.png" />
-    <!-- Semana 2: matriz hreflang (en-US / en-CA / es-MX / fr-CA) y JSON-LD desde datos -->
+
+    {/* Tipografía autoalojada: precargar evita el reflow al aplicar la fuente */}
+    <link
+      rel="preload"
+      href="/fonts/plus-jakarta-sans-var.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="preload" href="/fonts/fraunces-var.woff2" as="font" type="font/woff2" crossorigin />
+
+    {/* Matriz hreflang (en-US · en-CA · es-MX · fr-CA + x-default) */}
+    {hreflangs.map((a) => <link rel="alternate" hreflang={a.code} href={a.href} />)}
+    {xDefault && <link rel="alternate" hreflang="x-default" href={xDefault} />}
+
+    {/* Favicons e iconos de aplicación */}
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" content="#009cd8" />
+
+    {/* Open Graph */}
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Stay in Vallarta" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={imageAlt} />
+    <meta property="og:locale" content={OG_LOCALE[lang]} />
+    {otherOgLocales.map((l) => <meta property="og:locale:alternate" content={l} />)}
+
+    {/* Twitter / X */}
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+    <meta name="twitter:image:alt" content={imageAlt} />
+
+    {/* Preconexión al CDN de imágenes: las galerías piden fotos al cargar */}
+    <link rel="preconnect" href="https://img.stayinvallarta.com" crossorigin />
+
+    {
+      /* is:inline — es un bloque de datos, no un script a procesar. Etiquetas
+         de apertura/cierre explícitas: un elemento autocerrado con set:html ha
+         colgado el compilador de Astro antes (ver CLAUDE.md §10). */
+      jsonLd && (
+        <script type="application/ld+json" is:inline set:html={JSON.stringify(jsonLd)}></script>
+      )
+    }
   </head>
   <body class="bg-white text-siv-ink">
     <slot />

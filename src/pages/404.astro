@@ -1,0 +1,62 @@
+---
+/**
+ * Página 404. `wrangler.jsonc` declara not_found_handling: "404-page",
+ * así que Cloudflare sirve este archivo ante cualquier ruta inexistente.
+ * Trilingüe en una sola página: no sabemos el idioma del visitante que llega
+ * a una URL rota, así que se muestran los tres (requisito EN+ES+FR).
+ */
+import Base from "@/layouts/Base.astro";
+import { CONTACT } from "@/lib/site";
+
+const wa = `https://wa.me/${CONTACT.whatsappNumber}`;
+---
+
+<Base
+  title="Page not found · Página no encontrada — Stay in Vallarta"
+  description="That page doesn't exist. Go back to Stay in Vallarta apartment rentals in Puerto Vallarta."
+  lang="en"
+  noindex
+>
+  <main class="mx-auto flex min-h-screen max-w-2xl flex-col justify-center gap-8 px-6 py-16">
+    <div>
+      <p class="text-sm font-semibold tracking-widest text-siv-gold-dark uppercase">Error 404</p>
+      <h1 class="mt-2 text-3xl font-bold text-siv-blue-dark">This page doesn't exist</h1>
+    </div>
+
+    <div class="flex flex-col gap-5 text-lg text-siv-gray">
+      <p>
+        The link may be old or mistyped. <a class="text-siv-blue-dark underline" href="/"
+          >Go to the home page</a
+        > — or write to us and we'll point you the right way.
+      </p>
+      <p lang="es">
+        Es posible que el enlace sea antiguo o esté mal escrito. <a
+          class="text-siv-blue-dark underline"
+          href="/es/">Ir al inicio</a
+        > — o escríbenos y te orientamos.
+      </p>
+      <p lang="fr">
+        Le lien est peut-être ancien ou mal saisi. <a class="text-siv-blue-dark underline" href="/fr/"
+          >Aller à l'accueil</a
+        > — ou écrivez-nous et nous vous aiderons.
+      </p>
+    </div>
+
+    <div class="flex flex-wrap gap-3">
+      <a
+        class="inline-flex items-center rounded-full bg-siv-blue-dark px-6 py-3 font-semibold text-white"
+        href="/">Home · Inicio · Accueil</a
+      >
+      <a
+        class="inline-flex items-center rounded-full border border-siv-blue-dark px-6 py-3 font-semibold text-siv-blue-dark"
+        href={wa}
+        target="_blank"
+        rel="noopener">WhatsApp</a
+      >
+      <a
+        class="inline-flex items-center rounded-full border border-siv-blue-dark px-6 py-3 font-semibold text-siv-blue-dark"
+        href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a
+      >
+    </div>
+  </main>
+</Base>

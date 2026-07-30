@@ -1,0 +1,11 @@
+# Stay in Vallarta — https://stayinvallarta.com
+# Las galerías y la vista previa interna también llevan <meta name="robots" noindex>.
+# Se excluyen aquí para no gastar presupuesto de rastreo en 19 páginas que no
+# queremos indexar: sus URLs viven impresas en códigos QR, no en buscadores.
+
+User-agent: *
+Allow: /
+Disallow: /gallery/
+Disallow: /listings-demo
+
+Sitemap: https://stayinvallarta.com/sitemap-index.xml
