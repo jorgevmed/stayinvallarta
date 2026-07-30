@@ -8,9 +8,10 @@
       }
     },
     "assert": {
+      "//": "El corte es INDEXABLE vs NOINDEX, no galería vs no-galería. La categoría SEO de Lighthouse contiene la auditoría 'la página está bloqueada para indexación', que una página noindex reprueba POR DEFINICIÓN. Toda página noindex (galerías, 404, vista previa interna) queda fuera de esa categoría; el resto de presupuestos sí aplican a todas. Al añadir una página noindex hay que añadirla a AMBOS patrones o el CI se pone en rojo.",
       "assertMatrix": [
         {
-          "matchingUrlPattern": "^(?!.*/gallery/).*$",
+          "matchingUrlPattern": "^(?!.*(/gallery/|/404\\.html|/listings-demo)).*$",
           "assertions": {
             "categories:performance": ["error", { "minScore": 0.95 }],
             "categories:accessibility": ["error", { "minScore": 0.95 }],
@@ -25,7 +26,7 @@
           }
         },
         {
-          "matchingUrlPattern": ".*/gallery/.*",
+          "matchingUrlPattern": "(/gallery/|/404\\.html|/listings-demo)",
           "assertions": {
             "categories:performance": ["error", { "minScore": 0.95 }],
             "categories:accessibility": ["error", { "minScore": 0.95 }],
