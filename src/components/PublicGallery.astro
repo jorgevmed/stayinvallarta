@@ -84,11 +84,15 @@ const SUPA_BASE = String(import.meta.env.PUBLIC_SUPABASE_URL ?? "");
     </footer>
   </main>
 
-  <!-- floating WhatsApp button — always reachable, no scrolling to the footer -->
-  <a id="pg-wa-float" class="pg-wa-float" target="_blank" rel="noopener" hidden aria-label="Chat on WhatsApp">
-    <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" aria-hidden="true">
+  {/* Botón flotante de WhatsApp — siempre visible, sin bajar hasta el pie.
+      Lleva etiqueta de texto a propósito: la audiencia es 60+ y un icono suelto
+      obliga a adivinar. Además el texto resuelve el contraste (ver la regla
+      .pg-wa-float más abajo) y da un nombre accesible traducible. */}
+  <a id="pg-wa-float" class="pg-wa-float" target="_blank" rel="noopener" hidden data-i18n-aria="waFloat">
+    <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true">
       <path d="M12.04 2a9.9 9.9 0 0 0-8.51 14.96L2 22l5.18-1.5A9.9 9.9 0 1 0 12.04 2Zm0 1.67a8.23 8.23 0 1 1-4.2 15.3l-.3-.18-3.07.89.9-3-.2-.31a8.23 8.23 0 0 1 6.87-12.7Zm-3.24 3.6c-.19 0-.5.07-.76.36-.26.28-1 .97-1 2.38 0 1.4 1.02 2.76 1.17 2.95.14.19 1.97 3.16 4.86 4.3 2.4.95 2.89.76 3.41.71.52-.05 1.68-.68 1.92-1.35.24-.66.24-1.23.17-1.35-.07-.12-.26-.19-.55-.33-.28-.14-1.68-.83-1.94-.92-.26-.1-.45-.14-.64.14-.19.28-.73.92-.9 1.11-.16.19-.33.21-.61.07a7.7 7.7 0 0 1-2.27-1.4 8.55 8.55 0 0 1-1.57-1.96c-.17-.28-.02-.44.12-.58.13-.13.29-.33.43-.5.14-.16.19-.28.28-.47.1-.19.05-.36-.02-.5-.07-.14-.63-1.54-.87-2.1-.23-.55-.46-.48-.64-.49l-.59-.03Z"/>
     </svg>
+    <span>WhatsApp</span>
   </a>
 
   <!-- lightbox -->
@@ -120,6 +124,7 @@ const SUPA_BASE = String(import.meta.env.PUBLIC_SUPABASE_URL ?? "");
       ctaTitle: "Interested in this apartment?",
       ctaSub: "Write to us — we answer quickly and rent directly, with no platform fees.",
       ctaEmail: "Email us", waText: "Hello! I saw the photo gallery of",
+      waFloat: "Chat with us on WhatsApp",
     },
     es: {
       kicker: "Galería de fotos", unit: "Departamento", amenities: "Edificio y amenidades",
@@ -128,6 +133,7 @@ const SUPA_BASE = String(import.meta.env.PUBLIC_SUPABASE_URL ?? "");
       ctaTitle: "¿Te interesa este departamento?",
       ctaSub: "Escríbenos — respondemos rápido y rentamos directo, sin comisiones de plataformas.",
       ctaEmail: "Envíanos un correo", waText: "¡Hola! Vi la galería de fotos de",
+      waFloat: "Escríbenos por WhatsApp",
     },
     fr: {
       kicker: "Galerie photos", unit: "Appartement", amenities: "Immeuble et espaces communs",
@@ -136,6 +142,7 @@ const SUPA_BASE = String(import.meta.env.PUBLIC_SUPABASE_URL ?? "");
       ctaTitle: "Cet appartement vous intéresse ?",
       ctaSub: "Écrivez-nous — nous répondons vite et louons en direct, sans frais de plateforme.",
       ctaEmail: "Écrivez-nous", waText: "Bonjour ! J'ai vu la galerie photos de",
+      waFloat: "Écrivez-nous sur WhatsApp",
     },
   };
 
@@ -282,6 +289,12 @@ const SUPA_BASE = String(import.meta.env.PUBLIC_SUPABASE_URL ?? "");
     root.querySelectorAll<HTMLElement>("[data-i18n]").forEach((n) => {
       const k = n.dataset.i18n!;
       if (T[k]) n.textContent = T[k];
+    });
+    // Nombres accesibles: para controles cuya etiqueta visible es una marca
+    // ("WhatsApp") y necesitan una descripción completa para lectores de pantalla.
+    root.querySelectorAll<HTMLElement>("[data-i18n-aria]").forEach((n) => {
+      const k = n.dataset.i18nAria!;
+      if (T[k]) n.setAttribute("aria-label", T[k]);
     });
     const u = root.querySelector<HTMLElement>("[data-i18n-unit]");
     if (u && unit) u.textContent = `${T.unit} ${unit}`;
@@ -446,10 +459,21 @@ const SUPA_BASE = String(import.meta.env.PUBLIC_SUPABASE_URL ?? "");
      global.css's blanket min-height:44px does not satisfy on inline text links. */
   .pg-foot a { color: var(--color-siv-blue-dark); display: inline-block; padding: 6px 8px; }
 
-  /* floating WhatsApp */
+  /* WhatsApp flotante — píldora con etiqueta, no icono suelto.
+     Dos razones, y la de accesibilidad no es la principal:
+     1) La audiencia es 60+. Un icono sin palabra obliga a adivinar, y este es
+        el control que más convierte: ~45% de las reservas entran por WhatsApp.
+     2) Blanco sobre #25d366 da 1.98:1 y reprueba WCAG 2.2 SC 1.4.11 (3:1 para
+        objetos gráficos imprescindibles). En un botón de solo icono, el glifo ES
+        la etiqueta, así que la exigencia recae toda sobre él. Con texto, la
+        palabra identifica el control y la tinta sobre el mismo verde da 8.02:1.
+     Se conserva #25d366 exacto: no se gasta el reconocimiento de marca.
+     Lighthouse NO detecta esto — su auditoría de contraste solo mira texto. */
   .pg-wa-float { position: fixed; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom)); z-index: 40;
-    width: 58px; height: 58px; border-radius: 50%; background: #25d366; color: #fff;
-    display: flex; align-items: center; justify-content: center;
+    min-height: 52px; padding: 0 22px; border-radius: 999px;
+    background: #25d366; color: var(--color-siv-ink);
+    display: inline-flex; align-items: center; gap: 10px;
+    font-weight: 700; text-decoration: none; white-space: nowrap;
     box-shadow: 0 4px 16px rgba(0,0,0,.22); transition: transform .15s ease, box-shadow .15s ease; }
   .pg-wa-float:hover { transform: scale(1.06); box-shadow: 0 6px 22px rgba(0,0,0,.28); }
   .pg-wa-float[hidden] { display: none; }
