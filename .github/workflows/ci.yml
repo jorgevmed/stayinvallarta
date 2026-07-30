@@ -1,8 +1,8 @@
 # ============================================================
 # CI de Stay in Vallarta — "el robot de calidad" (SIV-7 §9)
 # Corre en cada push y pull request. Si algo falla, el cambio
-# NO se publica. El deploy lo hace Cloudflare Pages al hacer
-# merge a main (integración directa GitHub → Cloudflare).
+# NO se publica. El deploy lo hace Cloudflare (Workers con
+# assets estáticos) al hacer merge a main, vía integración Git.
 # ============================================================
 name: CI
 
@@ -18,6 +18,19 @@ jobs:
     steps:
       - name: Descargar el código
         uses: actions/checkout@v4
+
+      # Este repo es PÚBLICO a propósito. La app de gestión (siv-rental-manager)
+      # es privada porque contiene las políticas RLS y SECURITY.md. Este paso
+      # falla el build si material de la app se cuela aquí. Solo revisa archivos
+      # versionados: lo no versionado no se publica.
+      - name: Frontera con la app de gestión
+        run: |
+          PAT='service_role|SUPABASE_SERVICE|_authToken|is_admin\(\)|aal_ok\(|contracts_safe|tg_audit|commission_payments|rental_requests|BEGIN [A-Z ]*PRIVATE KEY'
+          if git grep -n -I -E "$PAT" -- . ':!.github/workflows/ci.yml'; then
+            echo "::error::Material de la app de gestión detectado en el repo público del sitio. Quítalo antes de hacer merge."
+            exit 1
+          fi
+          echo "OK — sin material de la app de gestión."
 
       - name: Node 22
         uses: actions/setup-node@v4
