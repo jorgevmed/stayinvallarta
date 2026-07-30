@@ -21,15 +21,19 @@ con assets estáticos** · **Supabase** (solo lectura pública de fotos) · **Gi
 ├── astro.config.mjs                # site, i18n (en/es/fr), React, Tailwind
 ├── public/
 │   ├── _headers                    # CSP, HSTS, X-Frame-Options, caché inmutable /_astro/*
-│   ├── emblem.png · logo.png
+│   ├── robots.txt · llms.txt · site.webmanifest
+│   ├── fonts/                      # Fraunces + Plus Jakarta Sans (.woff2 autoalojados)
+│   ├── og/default.png              # Imagen Open Graph 1200×630
+│   ├── favicon.ico · favicon-16/32.png · apple-touch-icon.png · icon-192/512.png
+│   └── emblem.png · logo.png
 ├── src/
-│   ├── styles/global.css           # DESIGN TOKENS de marca (@theme) + accesibilidad 60+
-│   ├── layouts/Base.astro          # Único layout: head, meta, canonical, noindex
+│   ├── styles/global.css           # @font-face + DESIGN TOKENS (@theme) + accesibilidad 60+
+│   ├── layouts/Base.astro          # Único layout: canonical, hreflang, OG/Twitter, JSON-LD
 │   ├── components/
 │   │   ├── PublicGallery.astro     # Galería compartible (JS, i18n en cliente)
 │   │   └── PhotoGallery.astro · Photo.astro   # Ruta cero-JS (base de /listings/)
-│   ├── lib/                        # photos.ts · img.ts · site.ts · gallery-icons.ts
-│   └── pages/                      # / (EN) · /es/ · /fr/ · /gallery/… · listings-demo
+│   ├── lib/                        # photos · img · site · gallery-icons · i18n · schema
+│   └── pages/                      # / (EN) · /es/ · /fr/ · 404 · /gallery/… · listings-demo
 └── tsconfig.json                   # TypeScript estricto, alias @/*
 ```
 
@@ -95,17 +99,28 @@ Un error `GH013` al empujar desde `main` es la regla funcionando, no un remoto r
 - **URLs de galería congeladas:** `/gallery/<edificio>/<unidad>/` se imprime en códigos
   QR desde la app de gestión. No cambiar esas rutas.
 
+## i18n y hreflang
+
+`src/lib/i18n.ts` tiene el **registro de rutas**: la única fuente de verdad de las URLs
+localizadas. hreflang debe ser *recíproco* (cada versión lista a todas, incluida a sí
+misma) y los slugs van traducidos (`/es/departamentos/`, no `/es/apartments/`), así que
+no se puede derivar de la URL. Al publicar una página nueva se añade su entrada ahí y se
+pasa `route="<clave>"` a `Base.astro`; los `<link rel="alternate">` salen solos.
+
+El inglés emite **dos** códigos (`en-US` y `en-CA`) porque sirve a dos mercados. Por eso
+el sitemap **no** lleva bloque `i18n`: ese plugin admite un solo código por locale y un
+subconjunto entraría en conflicto con el HTML.
+
+Las páginas `noindex` no reciben hreflang ni JSON-LD a propósito.
+
 ## Estado actual
 
-Las tres portadas (`/`, `/es/`, `/fr/`) son *stubs* "Coming soon". Lo que funciona de
-verdad son las 18 páginas de galería (`noindex`) que leen fotos publicadas de Supabase
-**en el navegador**, por lo que publicar u ocultar una foto **no requiere rebuild**;
-añadir un edificio o unidad **sí** lo requiere (URL nueva).
+Las tres portadas (`/`, `/es/`, `/fr/`) son *stubs* "Coming soon", pero ya con el paquete
+SEO completo: sitemap, `robots.txt`, `llms.txt`, matriz hreflang, JSON-LD
+(`LodgingBusiness` + `WebSite`), Open Graph/Twitter, juego de favicons y página 404
+trilingüe. Las 18 páginas de galería (`noindex`) leen fotos publicadas de Supabase **en
+el navegador**, así que publicar u ocultar una foto **no requiere rebuild**; añadir un
+edificio o unidad **sí** lo requiere (URL nueva).
 
-Pendiente y bloqueante para el lanzamiento: paquete SEO completo (sitemap, `robots.txt`,
-hreflang, JSON-LD `VacationRental`, OG, favicons, 404), las páginas `/listings/` y el
-contenido real en tres idiomas. Ver `CLAUDE.md` en la carpeta superior.
-
-> `@astrojs/react` está instalado pero **no hay ninguna isla `.tsx`**: el build produce
-> un chunk de React de 194 KB que ningún HTML referencia. Quitar la integración o
-> construir una isla que la justifique.
+Pendiente y bloqueante para el lanzamiento: las páginas `/listings/` y el contenido real
+en tres idiomas. Ver `CLAUDE.md` en la carpeta superior.

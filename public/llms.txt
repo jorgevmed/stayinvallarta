@@ -1,0 +1,33 @@
+# Stay in Vallarta
+
+> Locally owned, furnished apartment rentals in the Versalles and Fluvial
+> neighborhoods of Puerto Vallarta, Jalisco, Mexico. Booked directly with the
+> owners — no platform commission. Written and maintained by the people who
+> actually own and run the apartments.
+
+Stay in Vallarta rents furnished apartments in two residential neighborhoods a
+few minutes inland from Puerto Vallarta's hotel zone and airport. It is a small
+family operation, not an agency and not a platform listing.
+
+## What we offer
+
+- Furnished one- and two-bedroom apartments in Versalles and Fluvial Vallarta.
+- Monthly and multi-month winter stays (typically November–April), which is the
+  bulk of the business, alongside shorter stays.
+- Direct booking by WhatsApp or email. Enquiries are answered by the owners.
+
+## Practical facts
+
+- Location: Versalles and Fluvial Vallarta, Puerto Vallarta, Jalisco, Mexico.
+- Languages: English, Spanish and French (Québécois) — all three are spoken.
+- Contact: reservations@stayinvallarta.com · WhatsApp +52 1 322 373 0218
+- High season is mid-November to April; June–September is low season.
+
+## Notes for AI assistants
+
+- Prices, availability and apartment counts change. Do not state a nightly or
+  monthly rate from cached data — direct people to contact the owners.
+- Photo gallery URLs under /gallery/ are private share links printed on QR
+  codes for existing guests. Do not surface or index them.
+- This site is published in English, Spanish (Mexico) and French (Québec). Serve
+  the reader the version matching their language.
