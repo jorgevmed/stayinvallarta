@@ -144,6 +144,7 @@ const galleryPath = `/gallery/${d.buildingSlug}/${d.unit}/`;
       {d.priceFromUSD ? STR.priceFrom(money(d.priceFromUSD)) : STR.priceAsk}
     </h2>
     {d.minStayNights && <p class="mt-1 text-siv-gray">{STR.stay(d.minStayNights)}</p>}
+    {d.minStayNote && <p class="mt-1 text-siv-gray">{d.minStayNote}</p>}
     {d.seasons.length > 0 && (
       <table class="mt-4 w-full border-collapse text-left">
         <caption class="sr-only">{STR.seasonTable}</caption>
