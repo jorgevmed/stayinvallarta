@@ -18,6 +18,7 @@
  * banner. The route also sets noindex — placeholder facts cannot reach Google.
  */
 import PhotoGallery from "@/components/PhotoGallery.astro";
+import { amenityIcon, walkIcon } from "@/lib/listing-icons";
 import type { PropertyPhoto } from "@/lib/photos";
 import { CONTACT } from "@/lib/site";
 import { TEL_E164 } from "@/lib/schema";
@@ -220,8 +221,14 @@ const galleryPath = `/gallery/${d.buildingSlug}/${d.unit}/`;
   {/* 10 · Amenities: 8 shown, rest folded (zero-JS progressive disclosure) */}
   <section class="mt-10" aria-labelledby="amen-h">
     <h2 id="amen-h" class="text-2xl font-bold text-siv-ink">{STR.amenitiesTitle}</h2>
+    {/* Icons are decorative (aria-hidden, explicit </span> — §10 set:html gotcha) */}
     <ul class="mt-4 grid max-w-3xl grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
-      {d.amenities.slice(0, AMENITIES_SHOWN).map((a) => <li class="border-b border-siv-blue-light py-2">{a}</li>)}
+      {d.amenities.slice(0, AMENITIES_SHOWN).map((a) => (
+        <li class="flex items-center gap-3 border-b border-siv-blue-light py-2">
+          <span class="shrink-0 text-siv-blue-dark" set:html={amenityIcon(a)}></span>
+          <span>{a}</span>
+        </li>
+      ))}
     </ul>
     {amenitiesFold.length > 0 && (
       <details class="mt-3 max-w-3xl">
@@ -229,7 +236,12 @@ const galleryPath = `/gallery/${d.buildingSlug}/${d.unit}/`;
           {STR.showAll(d.amenities.length)}
         </summary>
         <ul class="mt-2 grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
-          {amenitiesFold.map((a) => <li class="border-b border-siv-blue-light py-2">{a}</li>)}
+          {amenitiesFold.map((a) => (
+            <li class="flex items-center gap-3 border-b border-siv-blue-light py-2">
+              <span class="shrink-0 text-siv-blue-dark" set:html={amenityIcon(a)}></span>
+              <span>{a}</span>
+            </li>
+          ))}
         </ul>
       </details>
     )}
@@ -267,7 +279,12 @@ const galleryPath = `/gallery/${d.buildingSlug}/${d.unit}/`;
       <tbody>
         {d.walkTimes.map((w) => (
           <tr class="border-b border-siv-blue-light">
-            <td class="py-3 pr-4">{w.place}</td>
+            <td class="py-3 pr-4">
+              <span class="flex items-center gap-3">
+                <span class="shrink-0 text-siv-blue-dark" set:html={walkIcon(w.place)}></span>
+                <span>{w.place}</span>
+              </span>
+            </td>
             <td class="py-3 font-semibold">{STR.minutes(w.minutes)}</td>
           </tr>
         ))}
