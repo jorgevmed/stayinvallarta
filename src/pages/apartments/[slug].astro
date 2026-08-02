@@ -1,0 +1,87 @@
+---
+/**
+ * /apartments/<slug>/ — English listing pages, built from the `listings`
+ * content collection (one .md per unit under src/content/listings/en/).
+ *
+ * PHOTOS ARE BUILD-TIME here (same trade-off as the gallery routes'
+ * getStaticPaths, §4): new/republished photos need a rebuild → deploy hook.
+ * In CI there are no PUBLIC_* env vars, so getPhotos() returns [] and the
+ * page renders its no-photos fallback — that is expected, not a bug (§11.7).
+ *
+ * INDEXING: the page is indexable ONLY once the entry's `factsVerified` is
+ * true. Until then it ships noindex + draft banner, and therefore must NOT be
+ * merged while unverified unless the LHCI noindex patterns are updated (§6) —
+ * the intended workflow is simply: fill the facts on the PR branch, flip
+ * factsVerified, merge green.
+ *
+ * HREFLANG: deliberately absent for now (no `route` prop). The ROUTES entry
+ * ships together with the FR twin (/fr/appartements/<slug-fr>/) — declaring
+ * alternates to pages that don't exist yet would be worse than none.
+ */
+import { getCollection, render } from "astro:content";
+import Base from "@/layouts/Base.astro";
+import ListingPage from "@/components/ListingPage.astro";
+import { getPhotos, heroOf } from "@/lib/photos";
+import { buildImageUrl } from "@/lib/img";
+import { vacationRentalSchema } from "@/lib/schema";
+
+export async function getStaticPaths() {
+  const entries = await getCollection(
+    "listings",
+    (e) => e.data.lang === "en" && !e.data.draft,
+  );
+  return entries.map((entry) => ({ params: { slug: entry.data.slug }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+const d = entry.data;
+const { Content } = await render(entry);
+
+// One fetch per building; keep this unit's photos plus building/pool/common
+// shots, unit shots first. Ladder/quality stay at Photo.astro defaults.
+const all = await getPhotos({ buildingSlug: d.buildingSlug });
+const photos = [
+  ...all.filter((p) => p.unit === d.unit),
+  ...all.filter((p) => p.role !== "unit"),
+];
+
+// `|| undefined`: buildImageUrl returns "" when PUBLIC_IMG_BASE is unset (CI),
+// and an empty string would NOT trigger Base's default-image destructuring —
+// og:image would silently become the bare site URL.
+const hero = heroOf(photos);
+const ogImage = hero
+  ? buildImageUrl(hero.r2_key, { width: 1200, quality: 82, fit: "cover" }) || undefined
+  : undefined;
+
+const url = new URL(Astro.url.pathname, Astro.site ?? "https://stayinvallarta.com").href;
+// JSON-LD only with verified facts — wrong structured data is worse than none.
+const schema = d.factsVerified
+  ? [
+      vacationRentalSchema({
+        url,
+        name: `${d.name} — ${d.building} ${d.unit}`,
+        description: d.description,
+        bedrooms: d.bedrooms,
+        baths: d.baths,
+        guests: d.guests,
+        neighborhood: d.neighborhood,
+        image: ogImage,
+        priceFromUSD: d.priceFromUSD,
+      }),
+    ]
+  : [];
+---
+
+<Base
+  title={`${d.name} — ${d.building} ${d.unit} · Stay in Vallarta`}
+  description={d.description}
+  lang="en"
+  noindex={!d.factsVerified}
+  image={ogImage}
+  imageAlt={`${d.name} — apartment ${d.unit} at ${d.building}, ${d.neighborhood}, Puerto Vallarta`}
+  schema={schema}
+>
+  <ListingPage entry={entry} photos={photos} lang="en">
+    <Content />
+  </ListingPage>
+</Base>

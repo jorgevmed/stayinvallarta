@@ -57,6 +57,61 @@ export function websiteSchema() {
   };
 }
 
+/**
+ * Per-apartment node for /apartments/ pages.
+ *
+ * ONLY call this when the listing's `factsVerified` is true — structured data
+ * that contradicts the page is worse than none (see file header). Price is
+ * optional for the same reason: omit until a real number ships.
+ */
+export function vacationRentalSchema(v: {
+  url: string;
+  name: string;
+  description: string;
+  bedrooms: number;
+  baths: number;
+  guests: number;
+  neighborhood: string;
+  image?: string;
+  priceFromUSD?: number | null;
+}) {
+  return {
+    "@type": "VacationRental",
+    "@id": `${v.url}#vacation-rental`,
+    name: v.name,
+    description: v.description,
+    url: v.url,
+    ...(v.image ? { image: v.image } : {}),
+    containedInPlace: { "@id": ORG_ID },
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: "Puerto Vallarta",
+      addressRegion: "Jalisco",
+      addressCountry: "MX",
+    },
+    containsPlace: {
+      "@type": "Accommodation",
+      occupancy: { "@type": "QuantitativeValue", maxValue: v.guests },
+      numberOfBedrooms: v.bedrooms,
+      numberOfBathroomsTotal: v.baths,
+    },
+    ...(v.priceFromUSD
+      ? {
+          offers: {
+            "@type": "Offer",
+            priceSpecification: {
+              "@type": "UnitPriceSpecification",
+              price: v.priceFromUSD,
+              priceCurrency: "USD",
+              unitText: "MONTH",
+            },
+          },
+        }
+      : {}),
+    knowsLanguage: ["en", "es", "fr"],
+  };
+}
+
 /** Wrap nodes in a single @graph so one <script> describes the whole page. */
 export function graph(...nodes: object[]) {
   return { "@context": "https://schema.org", "@graph": nodes };

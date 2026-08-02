@@ -1,0 +1,320 @@
+---
+/**
+ * <ListingPage /> — the listing-page template (CLAUDE.md §7, benchmarked
+ * against Plum Guide). One component, all languages: the EN route uses it now,
+ * /fr/appartements/ and /es/departamentos/ reuse it later with their own
+ * STR dictionary entries.
+ *
+ * Skeleton order is deliberate — deviation costs conversion (§7): hero +
+ * photo count → name → spec line → price → ask-us CTA → editorial → promise →
+ * 3 highlights → home truths → amenities (8 + fold) → bedrooms → services &
+ * fees → walk-times → house rules → cancellation → named host.
+ *
+ * ZERO JavaScript: amenities fold uses <details>, gallery lightbox is
+ * CSS-only (PhotoGallery). Senior rules apply: 18px body (global), words over
+ * icons, 44px targets, no hover-only UI.
+ *
+ * DRAFT GUARD: while `factsVerified` is false the page shows an amber draft
+ * banner. The route also sets noindex — placeholder facts cannot reach Google.
+ */
+import PhotoGallery from "@/components/PhotoGallery.astro";
+import type { PropertyPhoto } from "@/lib/photos";
+import { CONTACT } from "@/lib/site";
+import { TEL_E164 } from "@/lib/schema";
+import type { CollectionEntry } from "astro:content";
+import type { Lang } from "@/lib/i18n";
+
+interface Props {
+  entry: CollectionEntry<"listings">;
+  photos: PropertyPhoto[];
+  lang?: Lang;
+}
+const { entry, photos, lang = "en" } = Astro.props;
+const d = entry.data;
+
+// Static-page i18n mechanism (§5): strings inlined per language. EN ships
+// first (settled 2026-08-01); ES/FR values land with their routes.
+const STR = {
+  en: {
+    home: "Home", apartments: "Apartments",
+    draftBanner: "Draft preview — facts on this page are not yet verified. Not published to search engines.",
+    photoCount: (n: number) => `${n} photos`,
+    fullGallery: "See the full photo gallery",
+    noPhotos: "Photos for this apartment are in the photo gallery.",
+    specGuests: (n: number) => `Sleeps ${n}`,
+    specBedrooms: (n: number) => (n === 1 ? "1 bedroom" : `${n} bedrooms`),
+    specBaths: (n: number) => (n === 1 ? "1 bathroom" : `${n} bathrooms`),
+    specFloor: (n: number) => `Floor ${n}`,
+    elevatorYes: "Elevator", elevatorNo: "No elevator — stairs only",
+    priceFrom: (p: string) => `From ${p} per month`,
+    priceAsk: "Ask us for current monthly rates",
+    seasonTable: "Monthly rates by season", season: "Season", months: "Months", rate: "Monthly rate",
+    ratePending: "Ask us",
+    askTitle: "Ask us anything",
+    askBody: "You write to us directly — your local hosts, not a call center. We answer in English, Spanish and French.",
+    whatsapp: "Message us on WhatsApp", call: "Call", email: "Email",
+    storyTitle: (n: string) => `Living in ${n}`,
+    promiseTitle: "Booking direct with us",
+    promiseBody: "No service fees and no middleman: we manage these apartments on the owners' behalf, the price we quote is the price you pay, and we hand over the keys ourselves.",
+    highlightsTitle: "Three things to know",
+    truthsTitle: "Home truths",
+    truthsIntro: "Every home has them. We would rather you know before you book:",
+    amenitiesTitle: "Amenities",
+    showAll: (n: number) => `Show all ${n} amenities`,
+    bedroomsTitle: "Bedrooms & bathrooms", ensuite: "en-suite bathroom", sharedBath: "shared bathroom",
+    feesTitle: "Services & fees",
+    walkTitle: "What's nearby, on foot",
+    walkNote: "Times measured at a relaxed pace from the front door.",
+    minutes: (n: number) => `${n} min`,
+    rulesTitle: "House rules",
+    cancelTitle: "Cancellation",
+    hostTitle: "Your host",
+    stay: (nights: number) => `Minimum stay: ${nights} nights`,
+  },
+}[lang as "en"];
+
+const waText = encodeURIComponent(
+  `Hello! I'm interested in ${d.building}, apartment ${d.unit} (${d.name}).`,
+);
+const waHref = `https://wa.me/${CONTACT.whatsappNumber}?text=${waText}`;
+const telDisplay = "+52 322 373 0218";
+
+const money = (n: number) => `US$${n.toLocaleString("en-US")}`;
+const AMENITIES_SHOWN = 8;
+const amenitiesFold = d.amenities.slice(AMENITIES_SHOWN);
+const galleryPath = `/gallery/${d.buildingSlug}/${d.unit}/`;
+---
+
+<header class="border-b border-siv-blue-light bg-white">
+  <nav class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-6 py-4" aria-label="Site">
+    <a href="/" class="inline-flex items-center text-xl font-bold text-siv-blue-dark no-underline">Stay in Vallarta</a>
+    <div class="flex flex-wrap items-center gap-4">
+      <a href={`tel:${TEL_E164}`} class="inline-flex items-center font-semibold text-siv-ink underline">{telDisplay}</a>
+      <a
+        href={waHref}
+        class="inline-flex items-center rounded-full bg-siv-green-dark px-5 py-2.5 font-semibold text-white no-underline"
+      >{STR.whatsapp}</a>
+    </div>
+  </nav>
+</header>
+
+<main class="mx-auto max-w-5xl px-6 py-8">
+  {!d.factsVerified && (
+    <p role="status" class="mb-6 rounded-xl border border-siv-gold bg-amber-50 px-5 py-4 font-semibold text-siv-gold-dark">
+      {STR.draftBanner}
+    </p>
+  )}
+
+  <p class="mb-4 text-siv-gray">
+    <a href="/" class="text-siv-blue-dark underline">{STR.home}</a>
+    <span aria-hidden="true"> › </span>
+    <span>{STR.apartments}</span>
+    <span aria-hidden="true"> › </span>
+    <span>{d.building} · {d.unit}</span>
+  </p>
+
+  {/* 1 · Hero + photo count */}
+  {photos.length > 0 ? (
+    <section aria-label="Photos">
+      <PhotoGallery photos={photos} lang={lang} cap={5} />
+      <p class="mt-2 text-siv-gray">
+        {STR.photoCount(photos.length)} · <a href={galleryPath} class="text-siv-blue-dark underline">{STR.fullGallery}</a>
+      </p>
+    </section>
+  ) : (
+    <p class="rounded-xl bg-siv-mist p-6 text-siv-gray">
+      {STR.noPhotos} <a href={galleryPath} class="text-siv-blue-dark underline">{STR.fullGallery}</a>
+    </p>
+  )}
+
+  {/* 2 · Name  3 · Spec line */}
+  <div class="mt-8">
+    <p class="text-sm font-semibold tracking-widest text-siv-gold-dark uppercase">
+      {d.neighborhood} · Puerto Vallarta
+    </p>
+    <h1 class="mt-1 text-3xl font-bold text-siv-blue-dark">{d.name}</h1>
+    <p class="mt-1 text-lg text-siv-gray">{d.building} · Apartment {d.unit}</p>
+    <p class="mt-3 text-lg text-siv-ink">
+      {STR.specGuests(d.guests)} · {STR.specBedrooms(d.bedrooms)} · {STR.specBaths(d.baths)} · {STR.specFloor(d.floor)}{d.elevator === true && ` · ${STR.elevatorYes}`}{d.elevator === false && ` · ${STR.elevatorNo}`}
+    </p>
+  </div>
+
+  {/* 4 · Price */}
+  <section class="mt-8 rounded-xl bg-siv-mist p-6" aria-labelledby="price-h">
+    <h2 id="price-h" class="text-2xl font-bold text-siv-ink">
+      {d.priceFromUSD ? STR.priceFrom(money(d.priceFromUSD)) : STR.priceAsk}
+    </h2>
+    {d.minStayNights && <p class="mt-1 text-siv-gray">{STR.stay(d.minStayNights)}</p>}
+    {d.minStayNote && <p class="mt-1 text-siv-gray">{d.minStayNote}</p>}
+    {d.seasons.length > 0 && (
+      <table class="mt-4 w-full border-collapse text-left">
+        <caption class="sr-only">{STR.seasonTable}</caption>
+        <thead>
+          <tr class="border-b-2 border-siv-blue-light">
+            <th scope="col" class="py-2 pr-4 font-semibold">{STR.season}</th>
+            <th scope="col" class="py-2 pr-4 font-semibold">{STR.months}</th>
+            <th scope="col" class="py-2 font-semibold">{STR.rate}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {d.seasons.map((s) => (
+            <tr class="border-b border-siv-blue-light">
+              <td class="py-3 pr-4">{s.label}</td>
+              <td class="py-3 pr-4">{s.months}</td>
+              <td class="py-3 font-semibold">{s.monthlyUSD ? `${money(s.monthlyUSD)}` : STR.ratePending}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )}
+  </section>
+
+  {/* 5 · Ask the host anything */}
+  <section class="mt-8" aria-labelledby="ask-h">
+    <h2 id="ask-h" class="text-2xl font-bold text-siv-ink">{STR.askTitle}</h2>
+    <p class="mt-2 max-w-2xl text-siv-gray">{STR.askBody}</p>
+    <div class="mt-4 flex flex-wrap gap-3">
+      <a href={waHref} class="inline-flex items-center rounded-full bg-siv-green-dark px-6 py-3 font-semibold text-white no-underline">{STR.whatsapp}</a>
+      <a href={`tel:${TEL_E164}`} class="inline-flex items-center rounded-full border-2 border-siv-blue-dark px-6 py-3 font-semibold text-siv-blue-dark no-underline">{STR.call} {telDisplay}</a>
+      <a href={`mailto:${CONTACT.email}`} class="inline-flex items-center rounded-full border-2 border-siv-blue-dark px-6 py-3 font-semibold text-siv-blue-dark no-underline">{STR.email}</a>
+    </div>
+  </section>
+
+  {/* 6 · Editorial (markdown body), introduced by a per-neighborhood heading */}
+  <section class="mt-10 max-w-2xl" aria-labelledby="story-h">
+    <h2 id="story-h" class="text-2xl font-bold text-siv-ink">{STR.storyTitle(d.neighborhood)}</h2>
+    {d.storyTagline && <p class="mt-1 text-siv-gray">{d.storyTagline}</p>}
+    <div class="prose-siv mt-4">
+      <slot />
+    </div>
+  </section>
+
+  {/* 7 · The promise */}
+  <section class="mt-10 rounded-xl border border-siv-blue-light bg-siv-blue-light/40 p-6" aria-labelledby="promise-h">
+    <h2 id="promise-h" class="text-xl font-bold text-siv-blue-dark">{STR.promiseTitle}</h2>
+    <p class="mt-2 max-w-2xl">{STR.promiseBody}</p>
+  </section>
+
+  {/* 8 · Three captioned highlights */}
+  <section class="mt-10" aria-labelledby="hl-h">
+    <h2 id="hl-h" class="text-2xl font-bold text-siv-ink">{STR.highlightsTitle}</h2>
+    <div class="mt-4 grid gap-4 sm:grid-cols-3">
+      {d.highlights.map((h) => (
+        <div class="rounded-xl bg-siv-mist p-5">
+          <h3 class="text-lg font-bold text-siv-blue-dark">{h.title}</h3>
+          <p class="mt-1 text-siv-ink">{h.caption}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  {/* 9 · Home truths */}
+  <section class="mt-10" aria-labelledby="truths-h">
+    <h2 id="truths-h" class="text-2xl font-bold text-siv-ink">{STR.truthsTitle}</h2>
+    <p class="mt-2 max-w-2xl text-siv-gray">{STR.truthsIntro}</p>
+    <ul class="mt-3 max-w-2xl list-disc space-y-2 pl-6">
+      {d.homeTruths.map((t) => <li>{t}</li>)}
+    </ul>
+  </section>
+
+  {/* 10 · Amenities: 8 shown, rest folded (zero-JS progressive disclosure) */}
+  <section class="mt-10" aria-labelledby="amen-h">
+    <h2 id="amen-h" class="text-2xl font-bold text-siv-ink">{STR.amenitiesTitle}</h2>
+    <ul class="mt-4 grid max-w-3xl grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
+      {d.amenities.slice(0, AMENITIES_SHOWN).map((a) => <li class="border-b border-siv-blue-light py-2">{a}</li>)}
+    </ul>
+    {amenitiesFold.length > 0 && (
+      <details class="mt-3 max-w-3xl">
+        <summary class="inline-flex min-h-[44px] cursor-pointer items-center font-semibold text-siv-blue-dark underline">
+          {STR.showAll(d.amenities.length)}
+        </summary>
+        <ul class="mt-2 grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
+          {amenitiesFold.map((a) => <li class="border-b border-siv-blue-light py-2">{a}</li>)}
+        </ul>
+      </details>
+    )}
+  </section>
+
+  {/* 11 · Bedrooms & bathrooms with en-suite mapping */}
+  <section class="mt-10" aria-labelledby="bed-h">
+    <h2 id="bed-h" class="text-2xl font-bold text-siv-ink">{STR.bedroomsTitle}</h2>
+    <div class="mt-4 grid max-w-3xl gap-4 sm:grid-cols-2">
+      {d.bedroomsDetail.map((b) => (
+        <div class="rounded-xl bg-siv-mist p-5">
+          <h3 class="text-lg font-bold text-siv-ink">{b.room}</h3>
+          <p class="mt-1 text-siv-gray">{b.bed} · {b.ensuite ? STR.ensuite : STR.sharedBath}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  {/* 12 · Services & fees */}
+  {d.servicesAndFees.length > 0 && (
+    <section class="mt-10" aria-labelledby="fees-h">
+      <h2 id="fees-h" class="text-2xl font-bold text-siv-ink">{STR.feesTitle}</h2>
+      <ul class="mt-3 max-w-2xl list-disc space-y-2 pl-6">
+        {d.servicesAndFees.map((f) => <li>{f}</li>)}
+      </ul>
+    </section>
+  )}
+
+  {/* 13 · Local guide: walk-times, not a map pin (§7) */}
+  <section class="mt-10" aria-labelledby="walk-h">
+    <h2 id="walk-h" class="text-2xl font-bold text-siv-ink">{STR.walkTitle}</h2>
+    <p class="mt-2 text-siv-gray">{STR.walkNote}</p>
+    <table class="mt-3 w-full max-w-2xl border-collapse text-left">
+      <caption class="sr-only">{STR.walkTitle}</caption>
+      <tbody>
+        {d.walkTimes.map((w) => (
+          <tr class="border-b border-siv-blue-light">
+            <td class="py-3 pr-4">{w.place}</td>
+            <td class="py-3 font-semibold">{STR.minutes(w.minutes)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </section>
+
+  {/* 14 · House rules  15 · Cancellation */}
+  <section class="mt-10" aria-labelledby="rules-h">
+    <h2 id="rules-h" class="text-2xl font-bold text-siv-ink">{STR.rulesTitle}</h2>
+    <ul class="mt-3 max-w-2xl list-disc space-y-2 pl-6">
+      {d.houseRules.map((r) => <li>{r}</li>)}
+    </ul>
+    <h2 class="mt-8 text-2xl font-bold text-siv-ink">{STR.cancelTitle}</h2>
+    <p class="mt-2 max-w-2xl">{d.cancellation}</p>
+  </section>
+
+  {/* 16 · Named host — the differentiator (§7). Photo asset comes later. */}
+  <section class="mt-10 rounded-xl bg-siv-mist p-6" aria-labelledby="host-h">
+    <h2 id="host-h" class="text-2xl font-bold text-siv-ink">{STR.hostTitle}</h2>
+    <p class="mt-2 text-lg font-semibold text-siv-blue-dark">{d.host.name}</p>
+    <p class="mt-1 max-w-2xl">{d.host.note}</p>
+    <div class="mt-4">
+      <a href={waHref} class="inline-flex items-center rounded-full bg-siv-green-dark px-6 py-3 font-semibold text-white no-underline">{STR.whatsapp}</a>
+    </div>
+  </section>
+</main>
+
+<footer class="mt-12 border-t border-siv-blue-light bg-siv-mist">
+  <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-6 py-8 text-siv-gray">
+    <p class="font-semibold text-siv-ink">Stay in Vallarta</p>
+    <p>
+      <a href={`tel:${TEL_E164}`} class="text-siv-blue-dark underline">{telDisplay}</a>
+      <span aria-hidden="true"> · </span>
+      <a href={`mailto:${CONTACT.email}`} class="text-siv-blue-dark underline">{CONTACT.email}</a>
+    </p>
+  </div>
+</footer>
+
+<style>
+  /* Markdown body typography — scoped; Tailwind's prose plugin isn't installed
+     and 3 rules don't justify it. :global() reaches the rendered markdown. */
+  .prose-siv :global(p) {
+    margin-block: 1em;
+    max-width: 65ch;
+  }
+  .prose-siv :global(p:first-child) {
+    margin-top: 0;
+  }
+</style>
