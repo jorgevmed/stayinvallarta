@@ -63,6 +63,9 @@ const listings = defineCollection({
     /** For seasonal minimums that don't fit one number (e.g. "5 months Nov–Apr"). */
     minStayNote: z.string().nullable().default(null),
 
+    /** Optional one-line intro under the "Living in <neighborhood>" story heading. */
+    storyTagline: z.string().nullable().default(null),
+
     /** Exactly 3 captioned highlights (template, CLAUDE.md §7). */
     highlights: z.array(z.object({ title: z.string(), caption: z.string() })).length(3),
     /** Honest drawbacks in plain sentences — the trust wedge. Never delete to zero. */

@@ -51,10 +51,11 @@ const STR = {
     seasonTable: "Monthly rates by season", season: "Season", months: "Months", rate: "Monthly rate",
     ratePending: "Ask us",
     askTitle: "Ask us anything",
-    askBody: "You write to us directly — the owners, not a call center. We answer in English, Spanish and French.",
+    askBody: "You write to us directly — your local hosts, not a call center. We answer in English, Spanish and French.",
     whatsapp: "Message us on WhatsApp", call: "Call", email: "Email",
+    storyTitle: (n: string) => `Living in ${n}`,
     promiseTitle: "Booking direct with us",
-    promiseBody: "No service fees and no middleman: the price we quote is the price you pay. We live in Puerto Vallarta and hand over the keys ourselves.",
+    promiseBody: "No service fees and no middleman: we manage these apartments on the owners' behalf, the price we quote is the price you pay, and we hand over the keys ourselves.",
     highlightsTitle: "Three things to know",
     truthsTitle: "Home truths",
     truthsIntro: "Every home has them. We would rather you know before you book:",
@@ -179,9 +180,13 @@ const galleryPath = `/gallery/${d.buildingSlug}/${d.unit}/`;
     </div>
   </section>
 
-  {/* 6 · Editorial (markdown body) */}
-  <section class="prose-siv mt-10 max-w-2xl" aria-label="About this apartment">
-    <slot />
+  {/* 6 · Editorial (markdown body), introduced by a per-neighborhood heading */}
+  <section class="mt-10 max-w-2xl" aria-labelledby="story-h">
+    <h2 id="story-h" class="text-2xl font-bold text-siv-ink">{STR.storyTitle(d.neighborhood)}</h2>
+    {d.storyTagline && <p class="mt-1 text-siv-gray">{d.storyTagline}</p>}
+    <div class="prose-siv mt-4">
+      <slot />
+    </div>
   </section>
 
   {/* 7 · The promise */}
