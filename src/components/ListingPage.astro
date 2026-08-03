@@ -334,4 +334,16 @@ const galleryPath = `/gallery/${d.buildingSlug}/${d.unit}/`;
   .prose-siv :global(p:first-child) {
     margin-top: 0;
   }
+  /* Essay subtitles (### in the markdown body). h1–h3 already get the display
+     font from global.css; --text-xl is 24px, above the ≥22px Fraunces floor. */
+  .prose-siv :global(h3) {
+    font-size: var(--text-xl);
+    font-weight: 700;
+    color: var(--color-siv-ink);
+    margin-top: 1.6em;
+    margin-bottom: 0.4em;
+  }
+  .prose-siv :global(h3:first-child) {
+    margin-top: 0.5em;
+  }
 </style>
